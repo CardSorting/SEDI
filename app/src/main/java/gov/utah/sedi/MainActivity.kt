@@ -725,17 +725,19 @@ private fun NavIconWithBadge(
 
 @Composable
 private fun UvuInvitationScreen(onBeginVerification: () -> Unit, onCancel: () -> Unit) {
-    VerificationFlowScreen(
+    SceneFlowScaffold(
+        mood = SceneMood.Institutional,
         step = 1,
-        title = "UVU requests residency proof",
-        subtitle = "Review and approve what Utah Valley University receives.",
-        reassurance = SediBrand.Copy.APPROVED_ONLY,
+        title = "",
+        subtitle = "",
         primaryLabel = "Begin",
         onPrimary = onBeginVerification,
         secondaryLabel = "Not Now",
-        onSecondary = onCancel
+        onSecondary = onCancel,
+        suppressHeader = true,
+        focusFullBleed = true
     ) {
-        InvitationHeroCard(
+        InstitutionalRequestPresentation(
             institutionName = "Utah Valley University",
             headline = "Utah residency proof",
             detail = "Enrollment eligibility · Expires in 7 days"
@@ -745,7 +747,7 @@ private fun UvuInvitationScreen(onBeginVerification: () -> Unit, onCancel: () ->
 
 @Composable
 private fun OnboardingCancelledScreen(onReturn: () -> Unit) {
-    SediScreenBackdrop {
+    EnvironmentalBackground(mood = SceneMood.Approval) {
         Box(modifier = Modifier.fillMaxSize().padding(SediVerticalRhythm.screenHorizontal)) {
             Column(
                 modifier = Modifier
@@ -923,7 +925,8 @@ private fun ResidencyProofSelectionScreen(onContinue: () -> Unit, onBack: () -> 
 
 @Composable
 private fun PrivacyReviewScreen(onActivateWallet: () -> Unit, onBack: () -> Unit) {
-    VerificationFlowScreen(
+    SceneFlowScaffold(
+        mood = SceneMood.Privacy,
         step = 13,
         title = "Review your privacy",
         subtitle = "UVU receives residency verification only.",
@@ -933,7 +936,7 @@ private fun PrivacyReviewScreen(onActivateWallet: () -> Unit, onBack: () -> Unit
         showBack = true,
         onBack = onBack
     ) {
-        PrivacySplitPanel(
+        PrivacyEnvironmentSplit(
             shared = listOf("Residency verified"),
             hidden = listOf("Address", "Birthdate", "ID number")
         )
@@ -1000,6 +1003,7 @@ private fun VerificationFlowScreen(
     nextStepHint: String? = null,
     reassurance: String? = null,
     focusCentered: Boolean = true,
+    mood: SceneMood = SceneMood.Neutral,
     content: @Composable ColumnScope.() -> Unit
 ) {
     BalancedFlowScaffold(
@@ -1016,6 +1020,7 @@ private fun VerificationFlowScreen(
         nextStepHint = nextStepHint,
         reassurance = reassurance,
         focusCentered = focusCentered,
+        mood = mood,
         content = content
     )
 }
@@ -1103,13 +1108,7 @@ private fun DeviceTrustHandshake(active: Boolean, complete: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFFF0F7FC), Color(0xFFE3EFF8))
-                )
-            ),
+            .height(140.dp),
         contentAlignment = Alignment.Center
     ) {
         if (active) {
@@ -1181,7 +1180,7 @@ private fun OperationalProcessingScreen(
         delay(700)
         onFinished()
     }
-    SediScreenBackdrop {
+    EnvironmentalBackground(mood = SceneMood.Approval) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -1527,23 +1526,14 @@ private fun CredentialShareHistoryScreen(
 @Composable
 private fun RequestsListScreen(requests: List<VerificationRequest>, onOpenRequest: (String) -> Unit) {
     MainTabScaffold(title = "Requests", subtitle = "Review before sharing") {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(22.dp),
-            color = CardWhite.copy(alpha = 0.94f),
-            tonalElevation = 1.dp,
-            shadowElevation = 3.dp
-        ) {
-            Column(modifier = Modifier.padding(14.dp)) {
-                if (requests.isEmpty()) {
-                    EmptyStateCard(
-                        title = "No requests",
-                        body = "Institution requests will appear here."
-                    )
-                } else {
-                    requests.forEach { request ->
-                        RequestCard(request = request, onOpenRequest = { onOpenRequest(request.id) })
-                    }
+        SceneBlendRegion {
+            if (requests.isEmpty()) {
+                Text("No requests", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(4.dp))
+                Text("Institution requests will appear here.", color = Slate, style = MaterialTheme.typography.bodySmall)
+            } else {
+                requests.forEach { request ->
+                    RequestCard(request = request, onOpenRequest = { onOpenRequest(request.id) })
                 }
             }
         }
@@ -1571,21 +1561,30 @@ private fun RequestDetailScreen(
         title = "UVU request",
         onBack = onBack,
         subtitle = "Residency proof for enrollment eligibility.",
-        reassurance = SediBrand.Copy.REVIEW_BEFORE
+        reassurance = SediBrand.Copy.REVIEW_BEFORE,
+        mood = SceneMood.Institutional
     ) {
-        CalmPanel {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 InstitutionAvatar(request.institutionName)
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(request.institutionName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(request.institutionName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Ink)
                     Text("Residency verification", color = Slate, style = MaterialTheme.typography.bodySmall)
                 }
             }
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Brush.horizontalGradient(listOf(Color.Transparent, Slate.copy(alpha = 0.2f), Color.Transparent)))
+            )
+            Spacer(Modifier.height(14.dp))
             InfoRow("Expires", request.expires)
             InfoRow("Purpose", request.purpose)
         }
+        Spacer(Modifier.height(8.dp))
         DetailActions(
             primaryLabel = "Review sharing",
             onPrimary = onReviewSharedData,
@@ -1601,12 +1600,15 @@ private fun SharedDataPreviewScreen(request: VerificationRequest, onContinueToAp
         title = "What's shared",
         onBack = onBack,
         subtitle = "Residency proof for Utah Valley University.",
-        reassurance = SediBrand.Copy.PRIVATE_DETAILS
+        reassurance = SediBrand.Copy.PRIVATE_DETAILS,
+        mood = SceneMood.Privacy
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            PrivacySplitPanel(
+            PrivacyEnvironmentSplit(
                 shared = request.sharedData,
-                hidden = request.hiddenData
+                hidden = request.hiddenData,
+                sharedLabel = "UVU receives",
+                hiddenLabel = "Stays private"
             )
             DetailActions(primaryLabel = "Continue", onPrimary = onContinueToApproval)
         }
@@ -1619,7 +1621,8 @@ private fun ApprovalConsentScreen(request: VerificationRequest, onApprove: () ->
         title = "Approve residency proof?",
         onBack = onBack,
         subtitle = "UVU will receive verified residency for enrollment eligibility.",
-        reassurance = SediBrand.Copy.REVOKE_ANYTIME
+        reassurance = SediBrand.Copy.REVOKE_ANYTIME,
+        mood = SceneMood.Approval
     ) {
         Spacer(Modifier.height(8.dp))
         DetailActions(
@@ -1736,17 +1739,9 @@ private fun RevokeSuccessScreen(institutionName: String, onViewActivity: () -> U
 @Composable
 private fun ActivityScreen(events: List<ActivityEvent>) {
     MainTabScaffold(title = "Activity", subtitle = "What you've shared and when") {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(22.dp),
-            color = CardWhite.copy(alpha = 0.92f),
-            tonalElevation = 1.dp,
-            shadowElevation = 2.dp
-        ) {
-            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 18.dp)) {
-                events.forEachIndexed { index, event ->
-                    ActivityTimelineCard(event = event, showConnector = index < events.lastIndex)
-                }
+        SceneBlendRegion {
+            events.forEachIndexed { index, event ->
+                ActivityTimelineCard(event = event, showConnector = index < events.lastIndex)
             }
         }
     }
@@ -1782,10 +1777,11 @@ private fun DetailScreen(
     onBack: () -> Unit,
     subtitle: String? = null,
     reassurance: String? = null,
+    mood: SceneMood = SceneMood.Approval,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Scaffold(
-        containerColor = Mist,
+        containerColor = Color.Transparent,
         topBar = {
             androidx.compose.material3.CenterAlignedTopAppBar(
                 title = { Text(title, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium) },
@@ -1801,7 +1797,7 @@ private fun DetailScreen(
             )
         }
     ) { padding ->
-        SediScreenBackdrop {
+        EnvironmentalBackground(mood = mood) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -1841,33 +1837,32 @@ private fun DetailActions(
     onSecondary: (() -> Unit)? = null,
     primaryColors: ButtonColors = ButtonDefaults.buttonColors()
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = CardWhite,
-        tonalElevation = 2.dp,
-        shadowElevation = 4.dp
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.55f))
+                )
+            )
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Button(
+            onClick = onPrimary,
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = primaryColors
         ) {
-            Button(
-                onClick = onPrimary,
+            Text(primaryLabel, fontWeight = FontWeight.SemiBold)
+        }
+        if (secondaryLabel != null && onSecondary != null) {
+            OutlinedButton(
+                onClick = onSecondary,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = primaryColors
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Text(primaryLabel, fontWeight = FontWeight.SemiBold)
-            }
-            if (secondaryLabel != null && onSecondary != null) {
-                OutlinedButton(
-                    onClick = onSecondary,
-                    modifier = Modifier.fillMaxWidth().height(46.dp),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Text(secondaryLabel)
-                }
+                Text(secondaryLabel)
             }
         }
     }
@@ -2025,14 +2020,7 @@ private fun ActivityResultChip(result: String) {
 
 @Composable
 private fun CalmPanel(content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
-        shape = RoundedCornerShape(18.dp),
-        elevation = CardDefaults.cardElevation(1.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) { content() }
-    }
+    SceneBlendRegion(content = content)
 }
 
 @Composable

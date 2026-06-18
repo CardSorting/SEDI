@@ -117,7 +117,8 @@ fun CameraPermissionScreen(
         secondaryLabel = "Not now",
         onSecondary = onSkip,
         showBack = true,
-        onBack = onBack
+        onBack = onBack,
+        immersive = true
     ) {
         CameraPermissionIllustration()
     }
@@ -161,23 +162,30 @@ fun FaceAlignmentScreen(
         showBack = true,
         onBack = onBack,
         primaryEnabled = false,
-        immersive = true
+        immersive = true,
+        fullBleed = true
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
             FaceAlignmentPreview(
                 aligned = aligned,
                 glowStrength = glowStrength,
-                cameraEnabled = cameraEnabled
+                cameraEnabled = cameraEnabled,
+                fullBleed = true
             )
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(20.dp))
             AnimatedContent(
                 targetState = guidance,
                 transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(300)) },
-                label = "guidance"
+                label = "guidance",
+                modifier = Modifier.padding(horizontal = 24.dp)
             ) { text ->
                 Text(
                     text,
-                    color = Ink,
+                    color = Color.White.copy(alpha = 0.92f),
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
@@ -319,6 +327,7 @@ private fun PresenceFlowScaffold(
     nextStepHint: String? = null,
     reassurance: String? = null,
     immersive: Boolean = false,
+    fullBleed: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
     BalancedFlowScaffold(
@@ -336,8 +345,8 @@ private fun PresenceFlowScaffold(
         reassurance = reassurance,
         immersive = immersive,
         focusCentered = true,
-        warmBackdrop = true,
-        showPhaseStrip = !immersive,
+        mood = if (immersive) SceneMood.Biometric else SceneMood.Approval,
+        focusFullBleed = fullBleed,
         content = content
     )
 }
@@ -361,17 +370,7 @@ private fun PresenceIntroIllustration() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.9f),
-                        PresenceWarmMid,
-                        PresenceGlow.copy(alpha = 0.2f)
-                    )
-                )
-            ),
+            .height(200.dp),
         contentAlignment = Alignment.Center
     ) {
         Box(
@@ -421,22 +420,18 @@ private fun CameraPermissionIllustration() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(160.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                Brush.linearGradient(listOf(Color(0xFFF5F9FC), Color(0xFFE8F1F8)))
-            ),
+            .height(140.dp),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
                 .size(88.dp)
-                .clip(RoundedCornerShape(22.dp))
-                .background(Color.White)
-                .border(1.5.dp, TrustBlue.copy(alpha = 0.25f), RoundedCornerShape(22.dp)),
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.12f))
+                .border(1.5.dp, TrustBlue.copy(alpha = 0.4f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Text("◎", style = MaterialTheme.typography.headlineMedium, color = TrustBlue)
+            Text("◎", style = MaterialTheme.typography.headlineMedium, color = Color(0xFF9EC9DC))
         }
     }
 }
@@ -445,7 +440,8 @@ private fun CameraPermissionIllustration() {
 private fun FaceAlignmentPreview(
     aligned: Boolean,
     glowStrength: Float,
-    cameraEnabled: Boolean
+    cameraEnabled: Boolean,
+    fullBleed: Boolean = false
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "alignPulse")
     val ringScale by infiniteTransition.animateFloat(
@@ -463,17 +459,13 @@ private fun FaceAlignmentPreview(
 
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(260.dp)
-            .clip(RoundedCornerShape(28.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFF1A2E3B).copy(alpha = 0.85f), Color(0xFF2A4A5E).copy(alpha = 0.75f))
-                )
+            .then(
+                if (fullBleed) Modifier.fillMaxWidth().height(300.dp)
+                else Modifier.fillMaxWidth().height(260.dp).clip(RoundedCornerShape(28.dp))
             ),
         contentAlignment = Alignment.Center
     ) {
-        if (cameraEnabled) {
+        if (cameraEnabled && !fullBleed) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -636,10 +628,10 @@ private fun LivenessInteractionFrame(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(240.dp),
+            .height(260.dp),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.size((200 * breath).dp)) {
+        Canvas(modifier = Modifier.size((220 * breath).dp)) {
             val stroke = 6.dp.toPx()
             drawArc(
                 color = Color(0xFFE2E8F0),
@@ -658,14 +650,14 @@ private fun LivenessInteractionFrame(
         }
         Box(
             modifier = Modifier
-                .size(140.dp)
+                .size(160.dp)
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
-                        listOf(Color.White, PresenceWarmMid)
+                        listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.06f))
                     )
                 )
-                .border(2.dp, PresenceSoftBlue.copy(alpha = 0.3f), CircleShape),
+                .border(2.dp, PresenceSoftBlue.copy(alpha = 0.35f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -678,7 +670,7 @@ private fun LivenessInteractionFrame(
                         text,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = Ink,
+                        color = Color.White,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
@@ -690,27 +682,32 @@ private fun LivenessInteractionFrame(
 
 @Composable
 private fun SecureSessionStatusCard() {
-    CalmPresencePanel {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
-                    .background(PresenceSuccess.copy(alpha = 0.12f)),
+                    .background(PresenceSuccess.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text("✓", color = PresenceSuccess, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
             }
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(12.dp))
             Column {
                 Text("Session active", fontWeight = FontWeight.SemiBold, color = Ink, style = MaterialTheme.typography.bodyMedium)
                 Text("Wallet protected", color = Slate, style = MaterialTheme.typography.labelSmall)
             }
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(14.dp))
         LinearProgressIndicator(
             progress = { 1f },
-            modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
+            modifier = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)),
             color = PresenceSuccess,
             trackColor = Color(0xFFE2E8F0),
             strokeCap = StrokeCap.Round
@@ -720,12 +717,5 @@ private fun SecureSessionStatusCard() {
 
 @Composable
 private fun CalmPresencePanel(content: @Composable ColumnScope.() -> Unit) {
-    Surface(
-        color = CardWhite.copy(alpha = 0.92f),
-        shape = RoundedCornerShape(18.dp),
-        tonalElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(14.dp), content = content)
-    }
+    SceneBlendRegion(content = content)
 }

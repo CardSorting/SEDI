@@ -51,40 +51,11 @@ fun SediScreenBackdrop(
     warm: Boolean = false,
     content: @Composable BoxScope.() -> Unit
 ) {
-    val top = if (warm) Color(0xFFF8F4EF) else Mist
-    val mid = if (warm) Color(0xFFEEF4F9) else Color(0xFFF3F1EE)
-    val bottom = if (warm) Color(0xFFE4EDF6) else Color(0xFFECE8E4)
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(top, mid, bottom)))
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = if (warm) 0.42f else 0.28f),
-                            Color.Transparent
-                        ),
-                        radius = 900f
-                    )
-                )
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp)
-                .align(Alignment.BottomCenter)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.Transparent, bottom.copy(alpha = 0.55f))
-                    )
-                )
-        )
-        content()
-    }
+    EnvironmentalBackground(
+        mood = if (warm) SceneMood.Approval else SceneMood.Neutral,
+        modifier = modifier,
+        content = content
+    )
 }
 
 @Composable
@@ -169,47 +140,15 @@ fun SediActionSurface(
     nextStepHint: String? = null,
     elevated: Boolean = true
 ) {
-    Surface(
-        color = CardWhite,
-        tonalElevation = if (elevated) 4.dp else 2.dp,
-        shadowElevation = if (elevated) 6.dp else 0.dp,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = SediVerticalRhythm.screenHorizontal, vertical = SediVerticalRhythm.actionSurfaceTop),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (nextStepHint != null) {
-                Text(
-                    nextStepHint,
-                    color = Slate,
-                    style = MaterialTheme.typography.labelSmall,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            Button(
-                onClick = onPrimary,
-                enabled = primaryEnabled,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = StateBlue)
-            ) {
-                Text(primaryLabel, fontWeight = FontWeight.SemiBold)
-            }
-            if (secondaryLabel != null && onSecondary != null) {
-                OutlinedButton(
-                    onClick = onSecondary,
-                    modifier = Modifier.fillMaxWidth().height(46.dp),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Text(secondaryLabel)
-                }
-            }
-        }
-    }
+    IntegratedActionLayer(
+        primaryLabel = primaryLabel,
+        onPrimary = onPrimary,
+        primaryEnabled = primaryEnabled,
+        secondaryLabel = secondaryLabel,
+        onSecondary = onSecondary,
+        nextStepHint = nextStepHint,
+        mood = SceneMood.Neutral
+    )
 }
 
 @Composable
@@ -230,59 +169,32 @@ fun BalancedFlowScaffold(
     focusCentered: Boolean = true,
     warmBackdrop: Boolean = false,
     showPhaseStrip: Boolean = !immersive,
+    mood: SceneMood = when {
+        warmBackdrop -> SceneMood.Approval
+        immersive -> SceneMood.Biometric
+        else -> SceneMood.Neutral
+    },
+    focusFullBleed: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Scaffold(
-        containerColor = Color.Transparent,
-        bottomBar = {
-            SediActionSurface(
-                primaryLabel = primaryLabel,
-                onPrimary = onPrimary,
-                primaryEnabled = primaryEnabled,
-                secondaryLabel = secondaryLabel,
-                onSecondary = onSecondary,
-                nextStepHint = nextStepHint
-            )
-        }
-    ) { innerPadding ->
-        SediScreenBackdrop(warm = warmBackdrop) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = SediVerticalRhythm.screenHorizontal)
-            ) {
-                Spacer(Modifier.height(if (immersive) 4.dp else 8.dp))
-                if (step != null) {
-                    CompactOnboardingHeader(step = step, showPhaseStrip = showPhaseStrip)
-                }
-                if (showBack && onBack != null) {
-                    TextButton(
-                        onClick = onBack,
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp, vertical = 2.dp)
-                    ) {
-                        Text("Back", style = MaterialTheme.typography.labelLarge)
-                    }
-                }
-                SediFlowTitle(
-                    title = title,
-                    subtitle = subtitle,
-                    immersive = immersive,
-                    reassurance = reassurance,
-                    centerAligned = immersive || focusCentered
-                )
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    horizontalAlignment = if (immersive || focusCentered) Alignment.CenterHorizontally else Alignment.Start,
-                    verticalArrangement = if (focusCentered) Arrangement.Center else Arrangement.Top,
-                    content = content
-                )
-                Spacer(Modifier.height(SediVerticalRhythm.focusBreathing))
-            }
-        }
-    }
+    SceneFlowScaffold(
+        mood = mood,
+        step = step,
+        title = title,
+        subtitle = subtitle,
+        primaryLabel = primaryLabel,
+        onPrimary = onPrimary,
+        secondaryLabel = secondaryLabel,
+        onSecondary = onSecondary,
+        showBack = showBack,
+        onBack = onBack,
+        primaryEnabled = primaryEnabled,
+        nextStepHint = nextStepHint,
+        reassurance = reassurance,
+        immersive = immersive,
+        focusFullBleed = focusFullBleed,
+        content = content
+    )
 }
 
 @Composable
@@ -297,81 +209,17 @@ fun CenteredResultLayout(
     extraActionLabel: String? = null,
     onExtraAction: (() -> Unit)? = null
 ) {
-    SediScreenBackdrop {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(horizontal = SediVerticalRhythm.screenHorizontal)
-                    .padding(bottom = 48.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Box(
-                        modifier = Modifier
-                            .height(120.dp)
-                            .fillMaxWidth(0.7f)
-                            .background(
-                                Brush.radialGradient(
-                                    listOf(SediBrand.Success.copy(alpha = 0.14f), Color.Transparent)
-                                )
-                            )
-                    )
-                    SuccessGlyph(size = 64.dp)
-                }
-                Spacer(Modifier.height(20.dp))
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Ink,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    body,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Slate,
-                    textAlign = TextAlign.Center
-                )
-                if (reassurance != null) {
-                    Spacer(Modifier.height(12.dp))
-                    ReassuranceLine(reassurance)
-                }
-            }
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(horizontal = SediVerticalRhythm.screenHorizontal, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Button(
-                    onClick = onPrimary,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Text(primaryLabel, fontWeight = FontWeight.SemiBold)
-                }
-                if (extraActionLabel != null && onExtraAction != null) {
-                    OutlinedButton(
-                        onClick = onExtraAction,
-                        modifier = Modifier.fillMaxWidth().height(46.dp),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text(extraActionLabel)
-                    }
-                }
-                OutlinedButton(
-                    onClick = onSecondary,
-                    modifier = Modifier.fillMaxWidth().height(46.dp),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Text(secondaryLabel)
-                }
-            }
-        }
-    }
+    ExpansiveSuccessScene(
+        title = title,
+        body = body,
+        primaryLabel = primaryLabel,
+        onPrimary = onPrimary,
+        secondaryLabel = secondaryLabel,
+        onSecondary = onSecondary,
+        reassurance = reassurance,
+        extraActionLabel = extraActionLabel,
+        onExtraAction = onExtraAction
+    )
 }
 
 @Composable

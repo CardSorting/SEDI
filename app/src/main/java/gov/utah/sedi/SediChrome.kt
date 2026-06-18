@@ -145,7 +145,7 @@ fun MainTabScaffold(
             )
         }
     ) { padding ->
-        SediScreenBackdrop {
+        EnvironmentalBackground(mood = SceneMood.Neutral) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -184,59 +184,12 @@ fun PrivacySplitPanel(
     sharedLabel: String = "Shared",
     hiddenLabel: String = "Hidden"
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = CardWhite,
-        tonalElevation = 2.dp,
-        shadowElevation = 4.dp
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(sharedLabel, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = Ink)
-            Spacer(Modifier.height(8.dp))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                shared.forEach { item ->
-                    PrivacyChip(label = item, tone = SediBrand.Success, positive = true)
-                }
-            }
-            Spacer(Modifier.height(14.dp))
-            Text(hiddenLabel, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = Ink)
-            Spacer(Modifier.height(8.dp))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                hidden.forEach { item ->
-                    PrivacyChip(label = item, tone = Slate, positive = false)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PrivacyChip(label: String, tone: Color, positive: Boolean) {
-    Surface(
-        color = tone.copy(alpha = if (positive) 0.12f else 0.08f),
-        shape = RoundedCornerShape(999.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                if (positive) "✓" else "—",
-                color = tone,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(label, color = Ink, style = MaterialTheme.typography.labelMedium)
-        }
-    }
+    PrivacyEnvironmentSplit(
+        shared = shared,
+        hidden = hidden,
+        sharedLabel = sharedLabel,
+        hiddenLabel = hiddenLabel
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -279,7 +232,7 @@ fun DetailScaffold(
             }
         }
     ) { padding ->
-        SediScreenBackdrop {
+        EnvironmentalBackground(mood = SceneMood.Approval) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
