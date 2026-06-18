@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.SEDI" parent="android:style/Theme.Material.Light.NoActionBar">
+    <style name="Theme.SEDI" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/sedi_midnight</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_sedi_logo_foreground</item>
+        <item name="windowSplashScreenAnimationDuration">650</item>
+        <item name="postSplashScreenTheme">@style/Theme.SEDI.Main</item>
+    </style>
+
+    <style name="Theme.SEDI.Main" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:navigationBarColor">#F6F8FB</item>
-        <item name="android:statusBarColor">#F6F8FB</item>
+        <item name="android:navigationBarColor">@color/sedi_surface_warm</item>
+        <item name="android:statusBarColor">@color/sedi_surface_warm</item>
     </style>
 </resources>

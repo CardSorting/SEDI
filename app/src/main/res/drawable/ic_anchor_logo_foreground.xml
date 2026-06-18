@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Trust ring -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,18 A36,36 0 1,1 53.99,18"
+        android:strokeWidth="2.5"
+        android:strokeColor="#6BA3C4"
+        android:strokeAlpha="0.55"
+        android:strokeLineCap="round" />
+    <!-- Identity card -->
+    <path
+        android:fillColor="#F7F5F2"
+        android:pathData="M31,34 h46 a8,8 0 0,1 8,8 v30 a8,8 0 0,1 -8,8 h-46 a8,8 0 0,1 -8,-8 v-30 a8,8 0 0,1 8,-8 z" />
+    <!-- Anchor stem -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,72 L54,46"
+        android:strokeWidth="3"
+        android:strokeColor="#1A2B3C"
+        android:strokeLineCap="round" />
+    <!-- Anchor curve -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M42,52 Q54,44 62,56"
+        android:strokeWidth="3"
+        android:strokeColor="#1A2B3C"
+        android:strokeLineCap="round" />
+    <!-- Ground point -->
+    <path
+        android:fillColor="#C4A96B"
+        android:pathData="M54,74 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+    <!-- Approval check -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M46,58 L50,64 L62,48"
+        android:strokeWidth="3.2"
+        android:strokeColor="#2D7A5F"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the Utah Identity Wallet demo on the Android emulator with a visible UI.
+# Run the SEDI identity wallet demo on the Android emulator with a visible UI.
 #
 # One command does everything:
 #   1. Starts a stable headless emulator (if needed)
@@ -48,7 +48,7 @@ if ! command -v gradle >/dev/null; then
   exit 1
 fi
 
-echo "==> Utah Identity Wallet — demo launcher"
+echo "==> SEDI — demo launcher"
 echo ""
 
 if "$ADB" devices 2>/dev/null | grep -qE 'emulator-[0-9]+\s+device'; then
@@ -90,9 +90,9 @@ echo "==> Launching app..."
 
 echo ""
 echo "==> Opening screen mirror (scrcpy)"
-echo "    Look for a window titled \"Utah Identity Wallet\"."
+echo "    Look for a window titled \"SEDI\"."
 echo "    Closing scrcpy stops mirroring only — the emulator keeps running."
 echo "    Stop emulator later: adb emu kill"
 echo ""
 
-exec scrcpy --stay-awake --window-title "Utah Identity Wallet"
+exec scrcpy --stay-awake --window-title "SEDI"

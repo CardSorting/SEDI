@@ -27,7 +27,19 @@ class IdentityWalletViewModel(
     fun createWallet() {
         _state.update { current ->
             if (current.walletCreated) return@update current
-            current.copy(walletCreated = true)
+            current.copy(
+                walletCreated = true,
+                activity = listOf(
+                    newActivity(
+                        kind = ActivityKind.IdentityVerified,
+                        title = "Wallet created",
+                        description = "Your secure identity wallet is ready for setup.",
+                        timestamp = "Just now",
+                        institutionName = "Wallet",
+                        result = "Created"
+                    )
+                ) + current.activity
+            )
         }
     }
 
@@ -49,19 +61,19 @@ class IdentityWalletViewModel(
                 activity = listOf(
                     newActivity(
                         kind = ActivityKind.IdentityVerified,
-                        title = "Identity Ownership Confirmed",
-                        description = "Secure verification completed and identity proofs are ready to share.",
+                        title = "Presence confirmed",
+                        description = "Your presence was confirmed on this device.",
                         timestamp = "Just now",
-                        institutionName = "Identity Wallet",
-                        result = "Verified"
+                        institutionName = "Wallet",
+                        result = "Confirmed"
                     ),
                     newActivity(
                         kind = ActivityKind.IdentityVerified,
-                        title = "Utah Residency Verified",
-                        description = "Residency proof credential is active and ready to share with your approval.",
+                        title = "Utah residency proof ready",
+                        description = "A residency proof is ready for Utah Valley University when you approve sharing.",
                         timestamp = "Just now",
-                        institutionName = "Identity Wallet",
-                        result = "Active"
+                        institutionName = "Wallet",
+                        result = "Ready"
                     )
                 ) + current.activity
             )
@@ -101,8 +113,15 @@ class IdentityWalletViewModel(
                 name = "Utah Valley University",
                 category = "Higher education",
                 accessScope = "Enrollment eligibility",
-                allowedData = listOf("Utah Residency Verification", "Enrollment eligibility confirmation"),
-                hiddenData = listOf("Full address", "Birthdate", "Identity documents", "Age Verification", "Professional License", "Activity History"),
+                allowedData = listOf("Utah residency verified", "Enrollment eligibility confirmation"),
+                hiddenData = listOf(
+                    "Full address",
+                    "Birthdate",
+                    "State ID number",
+                    "Age verification",
+                    "Professional license",
+                    "Activity history"
+                ),
                 lastUsed = "Today",
                 expiration = "30 days",
                 status = PermissionStatus.Active
@@ -133,21 +152,21 @@ class IdentityWalletViewModel(
                 ),
                 activity = listOf(
                     newActivity(
-                        kind = ActivityKind.PermissionCreated,
-                        title = "UVU connected permission created",
-                        description = "Utah Valley University was added to Connected Institutions for enrollment eligibility.",
-                        timestamp = "Just now",
-                        institutionName = uvuPermission.name,
-                        result = "Permission active",
-                        institutionId = uvuPermission.id
-                    ),
-                    newActivity(
                         kind = ActivityKind.CredentialShared,
-                        title = "Residency verification shared with Utah Valley University",
-                        description = "Utah Valley University received verified Utah residency status. No full address was shared.",
+                        title = "Residency shared with UVU",
+                        description = "Utah Valley University received verified Utah residency. Your full address was not shared.",
                         timestamp = "Just now",
                         institutionName = uvuPermission.name,
                         result = "Shared",
+                        institutionId = uvuPermission.id
+                    ),
+                    newActivity(
+                        kind = ActivityKind.PermissionCreated,
+                        title = "UVU access created",
+                        description = "Utah Valley University can verify residency for enrollment eligibility for 30 days.",
+                        timestamp = "Just now",
+                        institutionName = uvuPermission.name,
+                        result = "Active",
                         institutionId = uvuPermission.id
                     )
                 ) + current.activity
@@ -319,7 +338,7 @@ class IdentityWalletViewModel(
                     newActivity(
                         kind = ActivityKind.AccessRevoked,
                         title = if (institution.id == "uvu") "UVU access revoked" else "Access revoked",
-                        description = "${institution.name} can no longer verify residency through this permission. Past verification remains visible in Activity.",
+                        description = "${institution.name} can no longer verify residency through this permission. The change is recorded in Activity.",
                         timestamp = "Just now",
                         institutionName = institution.name,
                         result = "Revoked",

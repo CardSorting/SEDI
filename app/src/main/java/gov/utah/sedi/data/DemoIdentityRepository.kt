@@ -51,7 +51,7 @@ class DemoIdentityRepository {
             ActivityEvent(
                 id = "seed-request",
                 kind = ActivityKind.RequestReceived,
-                title = "UVU residency request received",
+                title = "UVU request received",
                 description = "Utah Valley University requested proof of Utah residency for enrollment eligibility.",
                 timestamp = "Just now",
                 institutionName = "Utah Valley University",
@@ -66,8 +66,8 @@ class DemoIdentityRepository {
             id = "state-id",
             type = CredentialType.StateIdentity,
             title = "Verified Identity",
-            subtitle = "Identity ownership confirmed",
-            verifiedLabel = "Identity ownership verified",
+            subtitle = "Secure identity session on this device",
+            verifiedLabel = "Presence confirmed",
             lastVerified = "Today",
             expires = "May 18, 2030"
         ),
@@ -106,8 +106,15 @@ class DemoIdentityRepository {
         title = "Utah Valley University requests proof of Utah residency",
         purpose = "Enrollment eligibility",
         requestedProof = "Utah Residency Verification",
-        sharedData = listOf("Utah Residency Verified", "Verification status: Active", "Proof ready to share"),
-        hiddenData = listOf("Full address", "Birthdate", "Identity documents", "Other credentials"),
+        sharedData = listOf("Utah residency verified", "Enrollment eligibility confirmation"),
+        hiddenData = listOf(
+            "Full address",
+            "Birthdate",
+            "State ID number",
+            "Age verification",
+            "Professional license",
+            "Unrelated information"
+        ),
         receivedAt = "Just now",
         expires = "7 days"
     )

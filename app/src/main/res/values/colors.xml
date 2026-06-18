@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="sedi_midnight">#FF0A121C</color>
+    <color name="sedi_charcoal">#FF121C28</color>
+    <color name="sedi_graphite">#FF1A2634</color>
+    <color name="sedi_navy">#FF162636</color>
+    <color name="sedi_teal">#FF3A8BA8</color>
+    <color name="sedi_teal_soft">#FF6BA8BC</color>
+    <color name="sedi_steel">#FF5C6B7A</color>
+    <color name="sedi_surface_warm">#FFF8F6F3</color>
+    <color name="sedi_ink">#FF1A2B3C</color>
+    <color name="sedi_success">#FF3A8F6E</color>
+    <!-- Legacy resource aliases -->
+    <color name="anchor_navy_deep">@color/sedi_midnight</color>
+    <color name="anchor_navy_mid">@color/sedi_navy</color>
+    <color name="anchor_trust_blue">@color/sedi_teal</color>
+    <color name="anchor_trust_soft">@color/sedi_teal_soft</color>
+    <color name="anchor_surface_warm">@color/sedi_surface_warm</color>
+    <color name="anchor_ink">@color/sedi_ink</color>
+    <color name="anchor_success">@color/sedi_success</color>
+    <color name="sedi_splash_start">@color/sedi_midnight</color>
+    <color name="sedi_splash_end">@color/sedi_teal</color>
+    <color name="sedi_mist">@color/sedi_surface_warm</color>
+    <color name="sedi_state_blue">@color/sedi_navy</color>
+    <color name="sedi_trust_blue">@color/sedi_teal</color>
+</resources>
