@@ -1,0 +1,20 @@
+{
+  "workspaceRevision": 1,
+  "verifyRevision": 0,
+  "contextRefreshId": 1,
+  "trackedFileHashes": {
+    "ROADMAP.md": "7d2e45a81679be1e24a59fb0efc28d68c5ccd9a0a19087c7cde52d5d20981082",
+    "app/src/main/java/gov/utah/sedi/MainActivity.kt": "8525f6a9acc2ac1c6458f3b0343e0409adf08154313ec3edf90131782412962c",
+    "app/src/main/java/gov/utah/sedi/presentation/IdentityWalletViewModel.kt": "304ef030c169182e2592d1a6a80b2a586c1c234d669890167837b4af614860c3",
+    "app/src/main/java/gov/utah/sedi/domain/Models.kt": "d8d2c447b062abab397c3eaa1ee0e26f1c4a9b295b75cb63a362ec9f685d3cc0",
+    "app/src/main/java/gov/utah/sedi/data/DemoIdentityRepository.kt": "c6f08dac81ec7d2dc66b49c7c29d5d6faff1efc0aa56cbe51df3167dda92ef4d",
+    "app/build.gradle.kts": "d138b1d2258c6ea7affd020a445408ba2e9ede7511c4ccf31409d6e3b87125b0",
+    "build.gradle.kts": "083f26663012b5108b0037cd8707b4d412d543b364ed4d71c2bc2a9a97d39838",
+    ".wiki/index.md": "c5f3b906ef6046db26b2629094c36f50b4b492d42a36cbe55f811d1a2a67cfe5",
+    ".wiki/changelog.md": "bac129d414e3ada02d094e7fdd9b4ab691e8c93da3d972e86c75b2136cf96646",
+    ".wiki/walkthrough.md": "5ca19f5dcb37552ab0937adffe379c25df080f0bd672347963fa822e0fe1a74d",
+    ".wiki/state-transitions.md": "bfe81a3cb9087e9c85428c7b06f99bc5a9bd144af2be17ed7ddaf0c6da776d5b",
+    ".wiki/ux-ergonomics-audit.md": "c0753de0d01844939445fd7388bcb4309fb59726ba6511ca1b3cb27c957daa3d"
+  },
+  "coherenceTokens": {}
+}
