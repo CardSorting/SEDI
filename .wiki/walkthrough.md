@@ -1,35 +1,45 @@
 # SEDI Stakeholder Walkthrough
 
-## Primary Demo Path Implemented
+## Primary UVU Demo Path Implemented
 
 1. Launch the Android app.
-2. On `OnboardingWelcome`, introduce `Utah Identity Wallet` and the message `State-backed identity, controlled by you.`
+2. On `OnboardingWelcome`, introduce the Utah identity wallet.
 3. Tap `Create Identity Wallet`.
-4. On `OnboardingVerify`, show `Verify your State Identity` with State ID check, Residency check, and Identity match check.
-5. Tap `Verify Identity`.
-6. On `OnboardingComplete`, show `State Identity Verified`, the checkmark, and `Your identity wallet is ready.`
-7. Tap `Go to Wallet`.
-8. On the `Wallet` tab, show the verified State Identity card, credential cards for Utah Residency, Age Verification, and Professional License, and the recent University of Utah request preview.
-9. Open the University of Utah request from the Wallet preview or the `Requests` tab.
-10. On `Request Detail`, review requester name, purpose, requested proof, expiration, what University of Utah will receive, and what stays private.
-11. Tap `Review Share`.
-12. On `Share Review`, confirm `Share Utah Residency Verification`, shared `Utah residency verified`, and hidden full address, birthdate, and ID number.
-13. Tap `Approve Share`.
-14. On `Verification Success`, show `Verification Complete`, University of Utah received residency verification, no full address was shared, and permission was added to Connected Institutions.
-15. Tap `View Institution Access` or open the `Institutions` tab.
-16. On `Permission Detail`, show University of Utah can access Utah residency verification and student eligibility status, cannot access full address/birthdate/ID number/unrelated credentials, and has active access expiring in 30 days.
-17. Tap `Revoke Access`.
-18. On `Revoke Confirmation`, confirm that University of Utah will no longer verify residency, previous verification remains in activity history, and a new request can be approved later.
-19. Tap `Confirm Revoke`.
-20. On `Revoke Success`, show `Access Revoked`, University of Utah access removed, and Activity log updated.
-21. Tap `View Activity`.
-22. On `Activity`, show the audit trail entries for State Identity Verified, Residency request received, Residency shared with University of Utah, University access created, and University access revoked.
+4. On `OnboardingIdentitySetup`, begin setup.
+5. Tap `Verify with State Identity`.
+6. On `StateVerificationChecks`, review `State ID matched`, `Utah residency confirmed`, and `Identity status verified`.
+7. Tap `Continue`; this sets `identityVerified = true`.
+8. On `OnboardingComplete`, confirm setup.
+9. Tap `Go to Wallet`.
+10. On `Wallet`, see Verified State Identity, Utah Residency, Age Verification, Professional License, and the recent Utah Valley University request preview.
+11. Tap the UVU request preview or open the `Requests` bottom tab.
+12. On `Requests`, review the pending UVU request: institution `Utah Valley University`, request `Proof of Utah residency`, purpose `Enrollment eligibility`, status `Pending`, and expiration `7 days`.
+13. Tap `Review Request`.
+14. On `Request Detail`, review that Utah Valley University requests proof of Utah residency for enrollment eligibility, with requested proof `Utah Residency Verified` and expiration `7 days`.
+15. Tap `Review What Will Be Shared`.
+16. On `Shared Data Preview`, confirm UVU will receive `Utah Residency: Verified`, `Issuer: State of Utah`, and `Verification status: Active`.
+17. Confirm UVU will not receive full address, birthdate, State ID number, or unrelated credentials.
+18. Tap `Continue to Approval`.
+19. On `Share Verification`, review the approval summary: share once, enrollment eligibility purpose, no full address shared, and UVU added to connected institutions after approval.
+20. Tap `Approve Share`; this marks the UVU request approved, creates the UVU permission, and adds Activity History entries.
+21. On `Verification Processing`, watch proof preparation, state credential confirmation, and verified residency sending steps auto-advance.
+22. On `Verification Success`, confirm UVU received residency verification, full address was not shared, and UVU was added to Connected Institutions.
+23. Tap `View UVU Access`.
+24. On `UVU Permission Detail`, review that UVU can access Utah Residency Verification and enrollment eligibility confirmation.
+25. Confirm UVU cannot access full address, birthdate, State ID number, Age Verification, Professional License, or Activity History.
+26. Confirm access details: status Active, purpose Enrollment eligibility, last used Today, expires 30 days.
+27. Tap `Revoke Access`.
+28. On `Revoke Confirmation`, review that UVU will no longer verify residency through this permission, past verification remains visible in Activity, and UVU can send a new request later.
+29. Tap `Confirm Revoke`; this marks the UVU permission revoked and adds a revocation Activity History entry.
+30. On `Revoke Success`, confirm Utah Valley University no longer has active access and Activity History was updated.
+31. Tap `View Activity`.
+32. On `Activity`, review the audit trail entries including `State Identity Verified`, `Utah Residency Credential Active`, `UVU residency request received`, `Residency verification shared with Utah Valley University`, `UVU connected permission created`, and `UVU access revoked`.
 
 ## Product Framing Preserved
 
 - One screen has one primary job.
 - Main tabs are summary destinations only: Wallet, Requests, Institutions, and Activity.
-- Workflow-specific content lives in detail, confirmation, success, or optional flow screens.
-- Wallet no longer mixes full permissions, full institutions, full activity, and delegation controls.
-- The prototype avoids crypto/blockchain/trust-graph terminology and visuals in app source.
-- The design remains calm, institutional, card-based, and mobile-native.
+- Workflow-specific content lives in detail, confirmation, processing, success, or optional flow screens.
+- Wallet does not mix full permissions, full institutions, full activity, and delegation controls.
+- The prototype avoids prohibited technical/futuristic terminology in app source.
+- The design remains calm, institutional, card-based, mobile-native, and operationally believable.

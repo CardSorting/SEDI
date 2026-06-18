@@ -12,7 +12,7 @@ Stakeholders reviewing the identity-wallet interaction model, plus developers/op
 Kotlin Android app with Jetpack Compose UI, Material 3, Navigation Compose, a ViewModel state holder, pure domain models, and an in-memory demo data repository.
 
 **Canonical Workflows:**  
-Build and validate with `gradle :app:assembleDebug --no-daemon --console=plain`. Demo workflow: onboarding welcome → state identity verification → Wallet → Request Detail → Share Review → Verification Success → Institutions → Permission Detail → Revoke Confirmation → Revoke Success → Activity timeline.
+Build and validate with `gradle :app:assembleDebug --no-daemon --console=plain`. Demo workflow: onboarding welcome → identity setup → state verification checks → Wallet → Requests List → Request Detail → Shared Data Preview → Approval Consent → Verification Processing → Verification Success → UVU Permission Detail → Revoke Confirmation → Revoke Success → Activity History.
 
 **Primary Runtime / Operational Center:**  
 Workspace project root — ROADMAP.md lives beside source, not in plugin install trees.
@@ -231,7 +231,7 @@ Completed the native mobile journey restructure for SEDI’s Android identity wa
 **Updated:**  
 - `MainActivity.kt` now implements the required bottom tabs and one-task-per-screen journey.
 - `DemoIdentityRepository.kt` now seeds the required requests and institution/access copy for the walkthrough.
-- `IdentityWalletViewModel.kt` now creates University permission/activity entries on approval and revocation activity on revoke.
+- `IdentityWalletViewModel.kt` now creates UVU permission/activity entries on approval and UVU revocation activity on revoke.
 - `.wiki/` ledger now documents the restructured navigation, state transitions, walkthrough, UX audit, changelog, and validated build.
 
 **Archived:**  

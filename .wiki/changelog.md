@@ -1,5 +1,32 @@
 # SEDI Changelog
 
+## 2026-06-18 — Utah Valley University primary walkthrough revision
+
+### Changed
+
+- Updated `DemoIdentityRepository.kt` so the primary request is `uvu-residency` from `Utah Valley University` for proof of Utah residency and enrollment eligibility.
+- Removed the extra incoming request examples from the primary request list so the Requests tab focuses on the UVU walkthrough request.
+- Updated seeded institution entries so Department of Health, Licensing Board, and Bank display `No active access` until another permission is created.
+- Updated `IdentityWalletViewModel.kt` so approving the UVU request marks it approved, creates an active `uvu` permission, and adds Activity History entries for residency sharing and UVU permission creation.
+- Updated `IdentityWalletViewModel.kt` so revoking `uvu` marks the permission revoked and adds a `UVU access revoked` Activity History entry.
+- Updated `MainActivity.kt` to split onboarding into Welcome, Identity Setup, State Verification Checks, and Complete screens.
+- Updated `MainActivity.kt` to split the request flow into Request Detail, Shared Data Preview, Approval Consent, Verification Processing, and Verification Success screens.
+- Updated `MainActivity.kt` to use UVU-specific permission routing (`permission/uvu`) and product language such as `Review Request`, `Review What Will Be Shared`, `Continue to Approval`, `Approve Share`, `View UVU Access`, and `Revoke Access`.
+- Added an auto-advancing `VerificationProcessingScreen` using `LaunchedEffect` and `delay`.
+- Updated `.wiki/` ledger files to document the UVU flow, state transitions, walkthrough, UX audit, and build verification.
+
+### Validated
+
+- `gradle :app:assembleDebug --no-daemon --console=plain` completed successfully after the UVU revision.
+- A Kotlin source scan found no occurrences of `University of Utah`, `university-of-utah`, `U of U`, old share-review route names, or prohibited technical/futuristic terms in `app/src/main/java/gov/utah/sedi`.
+
+### Architectural Notes
+
+- Domain models remained unchanged and pure.
+- Demo data remains local and in-memory.
+- Local state mutation remains centralized in `IdentityWalletViewModel`.
+- Compose UI renders focused screens and dispatches user intentions to the ViewModel.
+
 ## 2026-06-18 — Native mobile journey restructure
 
 ### Changed

@@ -40,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,6 +66,7 @@ import gov.utah.sedi.domain.PermissionStatus
 import gov.utah.sedi.domain.RequestStatus
 import gov.utah.sedi.domain.VerificationRequest
 import gov.utah.sedi.presentation.IdentityWalletViewModel
+import kotlinx.coroutines.delay
 
 private val Ink = Color(0xFF102A43)
 private val Slate = Color(0xFF52616F)
@@ -78,7 +80,8 @@ private val Danger = Color(0xFFB42318)
 
 private object Route {
     const val OnboardingWelcome = "onboardingWelcome"
-    const val OnboardingVerify = "onboardingVerify"
+    const val OnboardingIdentitySetup = "onboardingIdentitySetup"
+    const val StateVerificationChecks = "stateVerificationChecks"
     const val OnboardingComplete = "onboardingComplete"
     const val Wallet = "wallet"
     const val Requests = "requests"
@@ -86,7 +89,9 @@ private object Route {
     const val Activity = "activity"
     const val CredentialDetail = "credential/{credentialId}"
     const val RequestDetail = "request/{requestId}"
-    const val ShareReview = "shareReview/{requestId}"
+    const val SharedDataPreview = "sharedDataPreview/{requestId}"
+    const val ApprovalConsent = "approvalConsent/{requestId}"
+    const val VerificationProcessing = "verificationProcessing"
     const val VerificationSuccess = "verificationSuccess"
     const val PermissionDetail = "permission/{institutionId}"
     const val RevokeConfirmation = "revoke/{institutionId}"
@@ -180,11 +185,16 @@ private fun IdentityWalletApp(viewModel: IdentityWalletViewModel) {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Route.OnboardingWelcome) {
-                OnboardingWelcomeScreen(onCreateWallet = { navController.navigate(Route.OnboardingVerify) })
+                OnboardingWelcomeScreen(onCreateWallet = { navController.navigate(Route.OnboardingIdentitySetup) })
             }
-            composable(Route.OnboardingVerify) {
-                OnboardingVerifyScreen(
-                    onVerifyIdentity = {
+            composable(Route.OnboardingIdentitySetup) {
+                OnboardingIdentitySetupScreen(
+                    onVerifyWithStateIdentity = { navController.navigate(Route.StateVerificationChecks) }
+                )
+            }
+            composable(Route.StateVerificationChecks) {
+                StateVerificationChecksScreen(
+                    onContinue = {
                         viewModel.verifyIdentity()
                         navController.navigate(Route.OnboardingComplete)
                     }
@@ -232,7 +242,7 @@ private fun IdentityWalletApp(viewModel: IdentityWalletViewModel) {
                 if (request == null) MissingScreen("Request unavailable", onBack = { navController.popBackStack() })
                 else RequestDetailScreen(
                     request = request,
-                    onReviewShare = { navController.navigate("shareReview/${request.id}") },
+                    onReviewSharedData = { navController.navigate("sharedDataPreview/${request.id}") },
                     onDeny = {
                         viewModel.denyRequest(request.id)
                         navController.navigate(Route.Requests) { popUpTo(Route.Requests) { inclusive = true } }
@@ -240,21 +250,43 @@ private fun IdentityWalletApp(viewModel: IdentityWalletViewModel) {
                     onBack = { navController.popBackStack() }
                 )
             }
-            composable(Route.ShareReview) { entry ->
+            composable(Route.SharedDataPreview) { entry ->
                 val request = state.requests.firstOrNull { it.id == entry.arguments?.getString("requestId") }
-                if (request == null) MissingScreen("Share review unavailable", onBack = { navController.popBackStack() })
-                else ShareReviewScreen(
+                if (request == null) MissingScreen("Shared data preview unavailable", onBack = { navController.popBackStack() })
+                else SharedDataPreviewScreen(
+                    request = request,
+                    onContinueToApproval = { navController.navigate("approvalConsent/${request.id}") },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Route.ApprovalConsent) { entry ->
+                val request = state.requests.firstOrNull { it.id == entry.arguments?.getString("requestId") }
+                if (request == null) MissingScreen("Approval unavailable", onBack = { navController.popBackStack() })
+                else ApprovalConsentScreen(
                     request = request,
                     onApprove = {
                         viewModel.approveRequestAndShare(request.id)
-                        navController.navigate(Route.VerificationSuccess)
+                        navController.navigate(Route.VerificationProcessing)
                     },
-                    onCancel = { navController.popBackStack() }
+                    onDeny = {
+                        viewModel.denyRequest(request.id)
+                        navController.navigate(Route.Requests) { popUpTo(Route.Requests) { inclusive = true } }
+                    },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Route.VerificationProcessing) {
+                VerificationProcessingScreen(
+                    onFinished = {
+                        navController.navigate(Route.VerificationSuccess) {
+                            popUpTo(Route.VerificationProcessing) { inclusive = true }
+                        }
+                    }
                 )
             }
             composable(Route.VerificationSuccess) {
                 VerificationSuccessScreen(
-                    onViewInstitutionAccess = { navController.navigate("permission/university-of-utah") },
+                    onViewUvuAccess = { navController.navigate("permission/uvu") },
                     onBackToWallet = {
                         navController.navigate(Route.Wallet) {
                             popUpTo(navController.graph.findStartDestination().id)
@@ -342,17 +374,36 @@ private fun OnboardingWelcomeScreen(onCreateWallet: () -> Unit) {
 }
 
 @Composable
-private fun OnboardingVerifyScreen(onVerifyIdentity: () -> Unit) {
+private fun OnboardingIdentitySetupScreen(onVerifyWithStateIdentity: () -> Unit) {
     FullScreenStep(
-        eyebrow = "Verify your State Identity",
-        title = "Verify your State Identity",
-        body = "This demo simulates the checks a state-backed wallet would complete before credentials are ready.",
-        actionLabel = "Verify Identity",
-        onAction = onVerifyIdentity
+        eyebrow = "Identity setup",
+        title = "Connect to State Identity",
+        body = "Begin wallet setup by verifying your identity with the State of Utah.",
+        actionLabel = "Verify with State Identity",
+        onAction = onVerifyWithStateIdentity
     ) {
         StatusCircle("ID", TrustBlue.copy(alpha = 0.12f), textColor = TrustBlue)
         Spacer(Modifier.height(24.dp))
-        CheckPanel(rows = listOf("State ID check", "Residency check", "Identity match check"))
+        DataListPanel(
+            title = "Setup will confirm",
+            tone = TrustBlue,
+            rows = listOf("State identity record", "Utah residency credential", "Wallet eligibility")
+        )
+    }
+}
+
+@Composable
+private fun StateVerificationChecksScreen(onContinue: () -> Unit) {
+    FullScreenStep(
+        eyebrow = "State verification",
+        title = "Verification checks complete",
+        body = "Your state-backed identity wallet is ready to activate.",
+        actionLabel = "Continue",
+        onAction = onContinue
+    ) {
+        StatusCircle("✓", Success.copy(alpha = 0.12f), textColor = Success)
+        Spacer(Modifier.height(24.dp))
+        CheckPanel(rows = listOf("State ID matched", "Utah residency confirmed", "Identity status verified"))
     }
 }
 
@@ -453,7 +504,7 @@ private fun RequestsListScreen(requests: List<VerificationRequest>, onOpenReques
 @Composable
 private fun RequestDetailScreen(
     request: VerificationRequest,
-    onReviewShare: () -> Unit,
+    onReviewSharedData: () -> Unit,
     onDeny: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -461,16 +512,14 @@ private fun RequestDetailScreen(
         CalmPanel {
             Text(request.institutionName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
-            Text(request.title, color = Slate)
+            Text("Requests proof of Utah residency", color = Slate)
             Spacer(Modifier.height(14.dp))
             InfoRow("Purpose", request.purpose)
             InfoRow("Requested proof", request.requestedProof)
-            InfoRow("Expiration", request.expires)
+            InfoRow("Expires in", request.expires)
         }
-        DataListPanel("What they will receive", Success, request.sharedData)
-        DataListPanel("What stays private", Slate, request.hiddenData)
-        Button(onClick = onReviewShare, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
-            Text("Review Share", fontWeight = FontWeight.SemiBold)
+        Button(onClick = onReviewSharedData, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Review What Will Be Shared", fontWeight = FontWeight.SemiBold)
         }
         OutlinedButton(onClick = onDeny, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
             Text("Deny")
@@ -479,31 +528,78 @@ private fun RequestDetailScreen(
 }
 
 @Composable
-private fun ShareReviewScreen(request: VerificationRequest, onApprove: () -> Unit, onCancel: () -> Unit) {
-    DetailScreen(title = "Share Review", onBack = onCancel) {
+private fun SharedDataPreviewScreen(request: VerificationRequest, onContinueToApproval: () -> Unit, onBack: () -> Unit) {
+    DetailScreen(title = "Shared Data Preview", onBack = onBack) {
         CalmPanel {
-            Text("Share Utah Residency Verification", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text("What Utah Valley University receives", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
-            Text("OAuth-style consent: approve only the proof listed below.", color = Slate)
+            Text("Only the required residency proof is prepared for this request.", color = Slate)
         }
-        DataListPanel("Shared", Success, listOf("Utah residency verified"))
-        DataListPanel("Hidden", Slate, listOf("Full address", "Birthdate", "ID number"))
-        Button(onClick = onApprove, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
-            Text("Approve Share", fontWeight = FontWeight.SemiBold)
-        }
-        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
-            Text("Cancel")
+        DataListPanel("UVU will receive", Success, request.sharedData)
+        DataListPanel("UVU will NOT receive", Slate, request.hiddenData)
+        Button(onClick = onContinueToApproval, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Continue to Approval", fontWeight = FontWeight.SemiBold)
         }
     }
 }
 
 @Composable
-private fun VerificationSuccessScreen(onViewInstitutionAccess: () -> Unit, onBackToWallet: () -> Unit) {
+private fun ApprovalConsentScreen(request: VerificationRequest, onApprove: () -> Unit, onDeny: () -> Unit, onBack: () -> Unit) {
+    DetailScreen(title = "Share Verification", onBack = onBack) {
+        CalmPanel {
+            Text("Approve sharing residency verification with Utah Valley University?", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Text("Review and approve this one-time proof for enrollment eligibility.", color = Slate)
+        }
+        DataListPanel(
+            "Permission summary",
+            TrustBlue,
+            listOf(
+                "Share once",
+                "For ${request.purpose.lowercase()}",
+                "No full address shared",
+                "UVU added to connected institutions after approval"
+            )
+        )
+        Button(onClick = onApprove, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Approve Share", fontWeight = FontWeight.SemiBold)
+        }
+        OutlinedButton(onClick = onDeny, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Deny")
+        }
+    }
+}
+
+@Composable
+private fun VerificationProcessingScreen(onFinished: () -> Unit) {
+    LaunchedEffect(Unit) {
+        delay(1400)
+        onFinished()
+    }
+    Column(
+        modifier = Modifier.fillMaxSize().background(Mist).padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        StatusCircle("…", TrustBlue.copy(alpha = 0.12f), textColor = TrustBlue)
+        Spacer(Modifier.height(24.dp))
+        Text("Sending Verification", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Ink)
+        Spacer(Modifier.height(16.dp))
+        DataListPanel(
+            title = "In progress",
+            tone = TrustBlue,
+            rows = listOf("Preparing proof", "Confirming state-issued credential", "Sending verified residency status to UVU")
+        )
+    }
+}
+
+@Composable
+private fun VerificationSuccessScreen(onViewUvuAccess: () -> Unit, onBackToWallet: () -> Unit) {
     ResultScreen(
         title = "Verification Complete",
-        body = "University of Utah received residency verification. No full address shared. Permission added to Connected Institutions.",
-        primaryLabel = "View Institution Access",
-        onPrimary = onViewInstitutionAccess,
+        body = "Utah Valley University received residency verification. Your full address was not shared. UVU has been added to Connected Institutions.",
+        primaryLabel = "View UVU Access",
+        onPrimary = onViewUvuAccess,
         secondaryLabel = "Back to Wallet",
         onSecondary = onBackToWallet
     )
@@ -515,7 +611,7 @@ private fun InstitutionsListScreen(institutions: List<ConnectedInstitution>, onO
         modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        item { ScreenHeader("Institutions", "Connected institutions only") }
+        item { ScreenHeader("Institutions", "Connected Institutions") }
         items(institutions) { institution ->
             InstitutionCard(institution = institution, onOpenInstitution = { onOpenInstitution(institution.id) })
         }
@@ -530,7 +626,7 @@ private fun PermissionDetailScreen(
     onViewActivity: () -> Unit,
     onBack: () -> Unit
 ) {
-    DetailScreen(title = "Permission Detail", onBack = onBack) {
+    DetailScreen(title = if (institution.id == "uvu") "UVU Permission Detail" else "Permission Detail", onBack = onBack) {
         CalmPanel {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 InstitutionAvatar(institution.name)
@@ -542,12 +638,13 @@ private fun PermissionDetailScreen(
                 PermissionChip(institution.status)
             }
             Spacer(Modifier.height(16.dp))
-            InfoRow("Access", institution.expiration)
+            InfoRow("Purpose", institution.accessScope)
             InfoRow("Last used", institution.lastUsed)
+            InfoRow("Expires", institution.expiration)
             InfoRow("Status", institution.status.name.lowercase().replaceFirstChar { it.uppercase() })
         }
-        DataListPanel("Can access", Success, institution.allowedData)
-        DataListPanel("Cannot access", Slate, institution.hiddenData)
+        DataListPanel("${institution.name} can access", Success, institution.allowedData)
+        DataListPanel("${institution.name} cannot access", Slate, institution.hiddenData)
         if (institution.status == PermissionStatus.Active) {
             Button(
                 onClick = onRevokeAccess,
@@ -555,11 +652,8 @@ private fun PermissionDetailScreen(
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Danger)
             ) { Text("Revoke Access", fontWeight = FontWeight.SemiBold) }
-            OutlinedButton(onClick = {}, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
-                Text("Extend Access")
-            }
         } else {
-            EmptyCard("This institution access is revoked.")
+            EmptyCard("No active access")
         }
         OutlinedButton(onClick = onViewActivity, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
             Text("View Activity")
@@ -573,9 +667,9 @@ private fun RevokeConfirmationScreen(institution: ConnectedInstitution, onConfir
         CalmPanel {
             Text("Revoke ${institution.name} access?", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(12.dp))
-            BulletRow("They will no longer be able to verify residency")
-            BulletRow("Previous verification remains in activity history")
-            BulletRow("You can approve a new request later")
+            BulletRow("UVU will no longer be able to verify residency through this permission.")
+            BulletRow("Past verification remains visible in Activity.")
+            BulletRow("UVU can send a new request later.")
         }
         Button(
             onClick = onConfirmRevoke,
@@ -593,7 +687,7 @@ private fun RevokeConfirmationScreen(institution: ConnectedInstitution, onConfir
 private fun RevokeSuccessScreen(institutionName: String, onViewActivity: () -> Unit, onBackToInstitutions: () -> Unit) {
     ResultScreen(
         title = "Access Revoked",
-        body = "$institutionName access removed. Activity log updated.",
+        body = "$institutionName no longer has active access. Activity history has been updated.",
         primaryLabel = "View Activity",
         onPrimary = onViewActivity,
         secondaryLabel = "Back to Institutions",
@@ -619,7 +713,7 @@ private fun ActivityScreen(events: List<ActivityEvent>) {
         modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item { ScreenHeader("Activity", "Transparent audit trail") }
+        item { ScreenHeader("Activity", "Activity History") }
         items(orderedEvents) { event -> ActivityTimelineCard(event) }
         item { Spacer(Modifier.height(16.dp)) }
     }
@@ -751,9 +845,9 @@ private fun CredentialCard(credential: Credential, onViewCredential: () -> Unit)
 private fun RequestPreviewCard(request: VerificationRequest, onOpenRequest: () -> Unit) {
     CalmPanel {
         Text(request.institutionName, fontWeight = FontWeight.SemiBold)
-        Text(request.requestedProof, color = Slate)
+        Text("Requests proof of Utah residency", color = Slate)
         Spacer(Modifier.height(12.dp))
-        Button(onClick = onOpenRequest, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) { Text("Open Request") }
+        Button(onClick = onOpenRequest, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) { Text("Review Request") }
     }
 }
 
@@ -772,8 +866,11 @@ private fun RequestCard(request: VerificationRequest, onOpenRequest: () -> Unit)
         Spacer(Modifier.height(12.dp))
         Text(request.purpose, color = Slate)
         Spacer(Modifier.height(10.dp))
+        InfoRow("Request", "Proof of Utah residency")
+        InfoRow("Purpose", request.purpose)
         InfoRow("Status", request.status.name)
-        Button(onClick = onOpenRequest, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) { Text("Open Request") }
+        InfoRow("Expires", request.expires)
+        Button(onClick = onOpenRequest, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) { Text("Review Request") }
     }
 }
 
@@ -787,13 +884,13 @@ private fun InstitutionCard(institution: ConnectedInstitution, onOpenInstitution
                 Text(institution.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
                 Text(institution.accessScope, color = Slate, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            PermissionChip(institution.status)
+            InstitutionAccessChip(institution)
         }
         Spacer(Modifier.height(12.dp))
-        InfoRow("Shared proof", institution.allowedData.firstOrNull().orEmpty())
-        InfoRow("Expiration", institution.expiration)
+        InfoRow("Access", institution.accessScope)
+        InfoRow("Expires", institution.expiration)
         InfoRow("Last used", institution.lastUsed)
-        Button(onClick = onOpenInstitution, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) { Text("Open Institution") }
+        Button(onClick = onOpenInstitution, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) { Text("View Access") }
     }
 }
 
@@ -943,6 +1040,15 @@ private fun PermissionChip(status: PermissionStatus) {
         PermissionStatus.Expired -> Warning
     }
     SoftChip(status.name.lowercase().replaceFirstChar { it.uppercase() }, color)
+}
+
+@Composable
+private fun InstitutionAccessChip(institution: ConnectedInstitution) {
+    if (institution.status == PermissionStatus.Active) {
+        SoftChip("Active", Success)
+    } else {
+        SoftChip("No active access", Slate)
+    }
 }
 
 @Composable

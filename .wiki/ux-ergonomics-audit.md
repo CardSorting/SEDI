@@ -17,49 +17,51 @@
 
 ## Ergonomic Goal
 
-Revise the native Android stakeholder demo so it feels like a real mobile product journey, not a scrolling dashboard. Each screen should perform one user task, with tabs reserved for primary destinations and stack screens handling detail workflows.
+Revise the native Android stakeholder demo so Utah Valley University is the primary institution and the product story feels like a sequence of small, focused mobile screens rather than a scroll-heavy dashboard. Each screen should perform one decision or show one result, with tabs reserved for primary destinations and stack screens handling workflow steps.
 
 ## Implemented UI Structure
 
 ### Primary Navigation
 
-- Bottom tabs are `Wallet`, `Requests`, `Institutions`, and `Activity`.
+- Bottom tabs are exactly `Wallet`, `Requests`, `Institutions`, and `Activity`.
 - These tabs are summary destinations only.
 - Detail work happens in stack routes outside the tab bar.
 
 ### Stack Screens
 
-- Onboarding: `OnboardingWelcomeScreen`, `OnboardingVerifyScreen`, `OnboardingCompleteScreen`.
+- Onboarding: `OnboardingWelcomeScreen`, `OnboardingIdentitySetupScreen`, `StateVerificationChecksScreen`, `OnboardingCompleteScreen`.
 - Credential detail: `CredentialDetailScreen`.
-- Request flow: `RequestDetailScreen`, `ShareReviewScreen`, `VerificationSuccessScreen`.
+- UVU request flow: `RequestDetailScreen`, `SharedDataPreviewScreen`, `ApprovalConsentScreen`, `VerificationProcessingScreen`, `VerificationSuccessScreen`.
 - Institution/revocation flow: `PermissionDetailScreen`, `RevokeConfirmationScreen`, `RevokeSuccessScreen`.
-- Optional delegation: `DelegationScreen`.
+- Optional delegation: `DelegationScreen`, kept separate from the main UVU walkthrough.
 
 ### Wallet Scope Control
 
 - Wallet shows a verified State Identity card.
 - Wallet shows credential cards for Utah Residency, Age Verification, and Professional License.
-- Wallet shows one recent request preview.
+- Wallet shows one recent Utah Valley University request preview.
 - Wallet does not show the full permissions list, full activity feed, all institutions, or delegation controls.
 
 ### Request and Consent Flow
 
-- Requests list shows incoming request cards with requester, proof, purpose, and status.
-- Request detail explains one request with purpose, requested proof, expiration, shared data, and hidden data.
-- Share review uses consent-screen framing and actions `Approve Share` and `Cancel`.
-- Approval creates University permission and activity events before showing success.
+- Requests list shows the UVU incoming request with institution, proof, purpose, status, expiration, and `Review Request` action.
+- Request detail explains one UVU request and routes to the shared-data preview through `Review What Will Be Shared`.
+- Shared data preview separates `UVU will receive` from `UVU will NOT receive`.
+- Approval consent uses product language: `Share Verification`, `Approve Share`, and `Deny`.
+- Approval creates real ViewModel state changes before the app shows processing and success screens.
 
 ### Institution and Revocation Flow
 
-- Institutions list shows connected institutions only.
-- Permission detail shows can-access, cannot-access, expiration, last-used, and active/revoked status.
+- Institutions list shows Utah Valley University as Active after approval and Department of Health, Licensing Board, and Bank as No active access.
+- UVU permission detail shows can-access, cannot-access, purpose, last-used, expiration, and status metadata.
 - Revoke confirmation is a separate confirmation step.
 - Revoke success is a separate result step that routes to Activity or Institutions.
 
 ### Activity Transparency
 
-- Activity shows audit entries with timestamp, action/title, institution, and result.
-- The activity trail is fed by the ViewModel state transitions and initial request seed data.
+- Activity shows Activity History entries with timestamp, action/title, institution, and result.
+- The activity trail is fed by the ViewModel state transitions and initial seed data.
+- Approval and revocation entries are not static text; they are created by state mutation functions.
 
 ## Layer Boundaries Preserved
 
@@ -71,7 +73,7 @@ Revise the native Android stakeholder demo so it feels like a real mobile produc
 
 ## Verification
 
-`gradle :app:assembleDebug --no-daemon --console=plain` completed successfully after the native journey restructure.
+`gradle :app:assembleDebug --no-daemon --console=plain` completed successfully after the UVU walkthrough revision.
 
 Build notes observed:
 

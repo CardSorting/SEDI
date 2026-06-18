@@ -4,17 +4,17 @@
   "contextRefreshId": 1,
   "trackedFileHashes": {
     "ROADMAP.md": "c5f47966deeb9c2632b03398c6a48506cfb5bc87048fa8e83d8a67bcd92774d6",
-    "app/src/main/java/gov/utah/sedi/MainActivity.kt": "2aaf598343c086270021260d2452b96eaf6af194bd77d2a3d05a36fa44c22541",
-    "app/src/main/java/gov/utah/sedi/presentation/IdentityWalletViewModel.kt": "304ef030c169182e2592d1a6a80b2a586c1c234d669890167837b4af614860c3",
+    "app/src/main/java/gov/utah/sedi/MainActivity.kt": "5f32d2ab84e4daaa56af4ed10595b5ea4a83e7cb771620cf01b4e87c46f79d1b",
+    "app/src/main/java/gov/utah/sedi/presentation/IdentityWalletViewModel.kt": "d95164f1c2a4e8c5c168f7ec307a8e7dedc64c72c4f56ede57eb781eecb6f43d",
     "app/src/main/java/gov/utah/sedi/domain/Models.kt": "0acea5f7c904c93e0357d2b71f6deb00eb96bf7bc9cef69c900a8b48d8712d86",
-    "app/src/main/java/gov/utah/sedi/data/DemoIdentityRepository.kt": "c6f08dac81ec7d2dc66b49c7c29d5d6faff1efc0aa56cbe51df3167dda92ef4d",
+    "app/src/main/java/gov/utah/sedi/data/DemoIdentityRepository.kt": "ff0337c20c93a139535049ab1c7616c89c27d3068f9c36e13626df12879c19c7",
     "app/build.gradle.kts": "d138b1d2258c6ea7affd020a445408ba2e9ede7511c4ccf31409d6e3b87125b0",
     "build.gradle.kts": "083f26663012b5108b0037cd8707b4d412d543b364ed4d71c2bc2a9a97d39838",
-    ".wiki/index.md": "d61df7a2041f458a0fb89ed45c7fb7dbb8f14ba0beb3c5ab7585ebce1affe37b",
-    ".wiki/changelog.md": "2fcaf63ad46e6d59373daf6d27ff6e9e28f174346a2185245b7a0a2571730926",
-    ".wiki/walkthrough.md": "2ec635a3b61df0dc5b774b76f084e799c1c5fca5692a58c8b489adf865535aac",
-    ".wiki/state-transitions.md": "bfe81a3cb9087e9c85428c7b06f99bc5a9bd144af2be17ed7ddaf0c6da776d5b",
-    ".wiki/ux-ergonomics-audit.md": "076a23d5091379be31ca613484529cb51ad7cc705e1add8572a066f66d62a4be"
+    ".wiki/index.md": "187d5b74d19cd5badaf3c64c608fda604ee8fafbabeaae873782fc4144c2793f",
+    ".wiki/changelog.md": "56fa11c6f20d8147e0889d0292eed27329e7fa13400e32c37e24dc05181ac1fd",
+    ".wiki/walkthrough.md": "73d59a873161081db04da9970e6038eba00bff15b5cf1559ec82322c8e46c5cb",
+    ".wiki/state-transitions.md": "4c673a4ca30167890c514da5c2689a62aa3934e046b127d220a121856fe5d7e7",
+    ".wiki/ux-ergonomics-audit.md": "ab44502269a9803976011462e712e9a93b2f75d675b22d54523bddd762d29b94"
   },
   "coherenceTokens": {}
 }

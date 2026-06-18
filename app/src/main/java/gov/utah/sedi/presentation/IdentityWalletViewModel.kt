@@ -30,7 +30,7 @@ class IdentityWalletViewModel(
                     newActivity(
                         kind = ActivityKind.IdentityVerified,
                         title = "State Identity Verified",
-                        description = "State ID check, residency check, and identity match check completed.",
+                        description = "State ID matched, Utah residency confirmed, and identity status verified.",
                         timestamp = "Just now",
                         institutionName = "State of Utah",
                         result = "Verified"
@@ -68,20 +68,20 @@ class IdentityWalletViewModel(
     fun approveRequestAndShare(requestId: String) {
         _state.update { current ->
             val request = current.requests.firstOrNull { it.id == requestId } ?: return@update current
-            val universityPermission = ConnectedInstitution(
-                id = "university-of-utah",
-                name = "University of Utah",
+            val uvuPermission = ConnectedInstitution(
+                id = "uvu",
+                name = "Utah Valley University",
                 category = "Higher education",
-                accessScope = "Utah residency verification and student eligibility status",
-                allowedData = listOf("Utah residency verification", "Student eligibility status"),
-                hiddenData = listOf("Full address", "Birthdate", "ID number", "Unrelated credentials"),
+                accessScope = "Enrollment eligibility",
+                allowedData = listOf("Utah Residency Verification", "Enrollment eligibility confirmation"),
+                hiddenData = listOf("Full address", "Birthdate", "State ID number", "Age Verification", "Professional License", "Activity History"),
                 lastUsed = "Today",
-                expiration = "Expires in 30 days",
+                expiration = "30 days",
                 status = PermissionStatus.Active
             )
             val institutions = current.institutions
-                .filterNot { it.id == universityPermission.id }
-                .let { listOf(universityPermission) + it }
+                .filterNot { it.id == uvuPermission.id }
+                .let { listOf(uvuPermission) + it }
             current.copy(
                 requests = current.requests.map {
                     if (it.id == requestId) it.copy(status = RequestStatus.Approved) else it
@@ -90,21 +90,21 @@ class IdentityWalletViewModel(
                 activity = listOf(
                     newActivity(
                         kind = ActivityKind.PermissionCreated,
-                        title = "University access created",
-                        description = "University of Utah can verify residency for the approved purpose.",
+                        title = "UVU connected permission created",
+                        description = "Utah Valley University was added to Connected Institutions for enrollment eligibility.",
                         timestamp = "Just now",
-                        institutionName = request.institutionName,
+                        institutionName = uvuPermission.name,
                         result = "Permission active",
-                        institutionId = universityPermission.id
+                        institutionId = uvuPermission.id
                     ),
                     newActivity(
                         kind = ActivityKind.CredentialShared,
-                        title = "Residency shared with University of Utah",
-                        description = "University of Utah received residency verification. No full address was shared.",
+                        title = "Residency verification shared with Utah Valley University",
+                        description = "Utah Valley University received verified Utah residency status. No full address was shared.",
                         timestamp = "Just now",
-                        institutionName = request.institutionName,
+                        institutionName = uvuPermission.name,
                         result = "Shared",
-                        institutionId = universityPermission.id
+                        institutionId = uvuPermission.id
                     )
                 ) + current.activity
             )
@@ -168,8 +168,8 @@ class IdentityWalletViewModel(
                 activity = listOf(
                     newActivity(
                         kind = ActivityKind.AccessRevoked,
-                        title = "University access revoked",
-                        description = "${institution.name} can no longer verify residency. Previous verification remains in history.",
+                        title = if (institution.id == "uvu") "UVU access revoked" else "Access revoked",
+                        description = "${institution.name} can no longer verify residency through this permission. Past verification remains visible in Activity.",
                         timestamp = "Just now",
                         institutionName = institution.name,
                         result = "Revoked",
