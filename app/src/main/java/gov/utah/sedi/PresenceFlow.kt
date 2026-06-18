@@ -31,19 +31,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -66,9 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 
-private val PresenceWarmTop = Color(0xFFF8F4EF)
 private val PresenceWarmMid = Color(0xFFEEF4F9)
-private val PresenceWarmBottom = Color(0xFFE4EDF6)
 private val PresenceGlow = Color(0xFF7EB8D4)
 private val PresenceSoftBlue = Color(0xFF2A6F97)
 private val PresenceSuccess = Color(0xFF197A56)
@@ -170,15 +161,30 @@ fun FaceAlignmentScreen(
         showBack = true,
         onBack = onBack,
         primaryEnabled = false,
-        immersive = true,
-        nextStepHint = guidance
+        immersive = true
     ) {
-        FaceAlignmentPreview(
-            guidance = guidance,
-            aligned = aligned,
-            glowStrength = glowStrength,
-            cameraEnabled = cameraEnabled
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            FaceAlignmentPreview(
+                aligned = aligned,
+                glowStrength = glowStrength,
+                cameraEnabled = cameraEnabled
+            )
+            Spacer(Modifier.height(14.dp))
+            AnimatedContent(
+                targetState = guidance,
+                transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(300)) },
+                label = "guidance"
+            ) { text ->
+                Text(
+                    text,
+                    color = Ink,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
     }
 }
 
@@ -315,125 +321,25 @@ private fun PresenceFlowScaffold(
     immersive: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Scaffold(
-        containerColor = Color.Transparent,
-        bottomBar = {
-            Surface(color = CardWhite, tonalElevation = 4.dp, shadowElevation = 8.dp) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (nextStepHint != null) {
-                        Text(
-                            nextStepHint,
-                            color = Slate,
-                            style = MaterialTheme.typography.labelSmall,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    Button(
-                        onClick = onPrimary,
-                        enabled = primaryEnabled,
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = StateBlue)
-                    ) {
-                        Text(primaryLabel, fontWeight = FontWeight.SemiBold)
-                    }
-                    if (secondaryLabel != null && onSecondary != null) {
-                        OutlinedButton(
-                            onClick = onSecondary,
-                            modifier = Modifier.fillMaxWidth().height(46.dp),
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Text(secondaryLabel)
-                        }
-                    }
-                }
-            }
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(PresenceWarmTop, PresenceWarmMid, PresenceWarmBottom)
-                    )
-                )
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalAlignment = if (immersive) Alignment.CenterHorizontally else Alignment.Start
-            ) {
-                OnboardingProgress(step)
-                OnboardingPhaseStrip(step)
-                if (showBack && onBack != null) {
-                    TextButton(
-                        onClick = onBack,
-                        modifier = Modifier.padding(top = 2.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp, vertical = 4.dp)
-                    ) {
-                        Text("Back", style = MaterialTheme.typography.labelLarge)
-                    }
-                }
-                Spacer(Modifier.height(if (immersive) 6.dp else 8.dp))
-                if (!immersive) {
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = Ink,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Slate
-                    )
-                    if (reassurance != null) {
-                        Spacer(Modifier.height(6.dp))
-                        ReassuranceLine(reassurance)
-                    }
-                    Spacer(Modifier.height(14.dp))
-                } else {
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Ink,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Slate,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    if (reassurance != null) {
-                        Spacer(Modifier.height(6.dp))
-                        ReassuranceLine(
-                            reassurance,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    Spacer(Modifier.height(12.dp))
-                }
-                content()
-                Spacer(Modifier.height(16.dp))
-            }
-        }
-    }
+    BalancedFlowScaffold(
+        step = step,
+        title = title,
+        subtitle = subtitle,
+        primaryLabel = primaryLabel,
+        onPrimary = onPrimary,
+        secondaryLabel = secondaryLabel,
+        onSecondary = onSecondary,
+        showBack = showBack,
+        onBack = onBack,
+        primaryEnabled = primaryEnabled,
+        nextStepHint = nextStepHint,
+        reassurance = reassurance,
+        immersive = immersive,
+        focusCentered = true,
+        warmBackdrop = true,
+        showPhaseStrip = !immersive,
+        content = content
+    )
 }
 
 @Composable
@@ -455,7 +361,7 @@ private fun PresenceIntroIllustration() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp)
+            .height(200.dp)
             .clip(RoundedCornerShape(24.dp))
             .background(
                 Brush.radialGradient(
@@ -537,7 +443,6 @@ private fun CameraPermissionIllustration() {
 
 @Composable
 private fun FaceAlignmentPreview(
-    guidance: String,
     aligned: Boolean,
     glowStrength: Float,
     cameraEnabled: Boolean
@@ -559,7 +464,7 @@ private fun FaceAlignmentPreview(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(280.dp)
+            .height(260.dp)
             .clip(RoundedCornerShape(28.dp))
             .background(
                 Brush.verticalGradient(
@@ -628,28 +533,6 @@ private fun FaceAlignmentPreview(
         ) {
             SoftFaceSilhouette(aligned = aligned)
         }
-
-        AnimatedContent(
-            targetState = guidance,
-            transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(300)) },
-            label = "guidance",
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 28.dp)
-        ) { text ->
-            Surface(
-                color = Color.Black.copy(alpha = 0.35f),
-                shape = RoundedCornerShape(999.dp)
-            ) {
-                Text(
-                    text,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
-        }
     }
 }
 
@@ -697,7 +580,7 @@ private fun PresenceConfirmationPulse(visible: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(220.dp),
+            .height(240.dp),
         contentAlignment = Alignment.Center
     ) {
         if (visible) {

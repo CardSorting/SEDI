@@ -745,24 +745,43 @@ private fun UvuInvitationScreen(onBeginVerification: () -> Unit, onCancel: () ->
 
 @Composable
 private fun OnboardingCancelledScreen(onReturn: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().background(Mist).padding(20.dp),
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Spacer(Modifier.height(24.dp))
-        Column {
-            Text("Verification paused", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Ink)
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "Return when you're ready to finish UVU's residency request.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Slate
-            )
-            Spacer(Modifier.height(8.dp))
-            ReassuranceLine(SediBrand.Copy.IN_CONTROL)
-        }
-        Button(onClick = onReturn, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(14.dp)) {
-            Text("Return to Request", fontWeight = FontWeight.SemiBold)
+    SediScreenBackdrop {
+        Box(modifier = Modifier.fillMaxSize().padding(SediVerticalRhythm.screenHorizontal)) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth()
+                    .padding(bottom = 80.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "Verification paused",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Ink,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Return when you're ready to finish UVU's residency request.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Slate,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(10.dp))
+                ReassuranceLine(SediBrand.Copy.IN_CONTROL)
+            }
+            Button(
+                onClick = onReturn,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(vertical = 20.dp)
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Return to Request", fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }
@@ -980,96 +999,30 @@ private fun VerificationFlowScreen(
     primaryEnabled: Boolean = true,
     nextStepHint: String? = null,
     reassurance: String? = null,
+    focusCentered: Boolean = true,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Scaffold(
-        containerColor = Mist,
-        bottomBar = {
-            Surface(color = CardWhite, tonalElevation = 3.dp) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (nextStepHint != null) {
-                        Text(
-                            nextStepHint,
-                            color = Slate,
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    Button(
-                        onClick = onPrimary,
-                        enabled = primaryEnabled,
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text(primaryLabel, fontWeight = FontWeight.SemiBold)
-                    }
-                    if (secondaryLabel != null && onSecondary != null) {
-                        OutlinedButton(
-                            onClick = onSecondary,
-                            modifier = Modifier.fillMaxWidth().height(46.dp),
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Text(secondaryLabel)
-                        }
-                    }
-                }
-            }
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp)
-        ) {
-            OnboardingProgress(step)
-            OnboardingPhaseStrip(step)
-            if (showBack && onBack != null) {
-                TextButton(
-                    onClick = onBack,
-                    modifier = Modifier.padding(top = 2.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp, vertical = 4.dp)
-                ) { Text("Back", style = MaterialTheme.typography.labelLarge) }
-            }
-            Spacer(Modifier.height(8.dp))
-            Text(title, style = MaterialTheme.typography.titleLarge, color = Ink, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(4.dp))
-            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = Slate)
-            if (reassurance != null) {
-                Spacer(Modifier.height(6.dp))
-                ReassuranceLine(reassurance)
-            }
-            Spacer(Modifier.height(14.dp))
-            content()
-            Spacer(Modifier.height(16.dp))
-        }
-    }
+    BalancedFlowScaffold(
+        step = step,
+        title = title,
+        subtitle = subtitle,
+        primaryLabel = primaryLabel,
+        onPrimary = onPrimary,
+        secondaryLabel = secondaryLabel,
+        onSecondary = onSecondary,
+        showBack = showBack,
+        onBack = onBack,
+        primaryEnabled = primaryEnabled,
+        nextStepHint = nextStepHint,
+        reassurance = reassurance,
+        focusCentered = focusCentered,
+        content = content
+    )
 }
 
 @Composable
 internal fun OnboardingProgress(step: Int, total: Int = ONBOARDING_STEPS) {
-    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-        Text(
-            "Step $step of $total",
-            color = TrustBlue,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-        Spacer(Modifier.height(4.dp))
-        LinearProgressIndicator(
-            progress = { step.toFloat() / total },
-            modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
-            color = StateBlue,
-            trackColor = Color(0xFFE2E8F0),
-            strokeCap = StrokeCap.Round
-        )
-    }
+    CompactOnboardingHeader(step = step, total = total, showPhaseStrip = true)
 }
 
 @Composable
@@ -1228,41 +1181,51 @@ private fun OperationalProcessingScreen(
         delay(700)
         onFinished()
     }
-    Column(
-        modifier = Modifier.fillMaxSize().background(Mist).padding(20.dp),
-        verticalArrangement = Arrangement.Center
-    ) {
-        if (step != null) {
-            OnboardingProgress(step)
-            OnboardingPhaseStrip(step)
-            Spacer(Modifier.height(12.dp))
-        }
-        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Ink)
-        if (subtitle != null) {
-            Spacer(Modifier.height(4.dp))
-            Text(subtitle, color = Slate, style = MaterialTheme.typography.bodyMedium)
-        }
-        Spacer(Modifier.height(16.dp))
-        CalmPanel {
-            steps.forEachIndexed { index, step ->
-                val complete = index < visibleSteps
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    StatusCircle(
-                        text = if (complete) "✓" else "…",
-                        color = if (complete) Success.copy(alpha = 0.12f) else TrustBlue.copy(alpha = 0.12f),
-                        textColor = if (complete) Success else TrustBlue,
-                        size = 36.dp
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        step,
-                        color = if (complete) Ink else Slate,
-                        fontWeight = if (complete) FontWeight.SemiBold else FontWeight.Normal,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+    SediScreenBackdrop {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(SediVerticalRhythm.screenHorizontal),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            if (step != null) {
+                CompactOnboardingHeader(step = step, showPhaseStrip = true)
+                Spacer(Modifier.height(16.dp))
+            }
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Ink,
+                textAlign = TextAlign.Center
+            )
+            if (subtitle != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(subtitle, color = Slate, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+            }
+            Spacer(Modifier.height(20.dp))
+            CalmPanel {
+                steps.forEachIndexed { index, stepLabel ->
+                    val complete = index < visibleSteps
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        StatusCircle(
+                            text = if (complete) "✓" else "…",
+                            color = if (complete) Success.copy(alpha = 0.12f) else TrustBlue.copy(alpha = 0.12f),
+                            textColor = if (complete) Success else TrustBlue,
+                            size = 36.dp
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            stepLabel,
+                            color = if (complete) Ink else Slate,
+                            fontWeight = if (complete) FontWeight.SemiBold else FontWeight.Normal,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             }
         }
@@ -1354,10 +1317,15 @@ private fun ShareProofTypeScreen(
     onChooseLicense: () -> Unit,
     onBack: () -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    SediScreenBackdrop {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                horizontal = SediVerticalRhythm.screenHorizontal,
+                vertical = SediVerticalRhythm.tabTopBreathing
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
         item { TopBackRow(title = "Share a proof", onBack = onBack) }
         item {
             Text(
@@ -1388,6 +1356,7 @@ private fun ShareProofTypeScreen(
             )
         }
         item { Spacer(Modifier.height(8.dp)) }
+        }
     }
 }
 
@@ -1558,14 +1527,24 @@ private fun CredentialShareHistoryScreen(
 @Composable
 private fun RequestsListScreen(requests: List<VerificationRequest>, onOpenRequest: (String) -> Unit) {
     MainTabScaffold(title = "Requests", subtitle = "Review before sharing") {
-        if (requests.isEmpty()) {
-            EmptyStateCard(
-                title = "No requests",
-                body = "Institution requests will appear here."
-            )
-        } else {
-            requests.forEach { request ->
-                RequestCard(request = request, onOpenRequest = { onOpenRequest(request.id) })
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(22.dp),
+            color = CardWhite.copy(alpha = 0.94f),
+            tonalElevation = 1.dp,
+            shadowElevation = 3.dp
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                if (requests.isEmpty()) {
+                    EmptyStateCard(
+                        title = "No requests",
+                        body = "Institution requests will appear here."
+                    )
+                } else {
+                    requests.forEach { request ->
+                        RequestCard(request = request, onOpenRequest = { onOpenRequest(request.id) })
+                    }
+                }
             }
         }
         ReassuranceLine(SediBrand.Copy.REVIEW_BEFORE)
@@ -1624,11 +1603,13 @@ private fun SharedDataPreviewScreen(request: VerificationRequest, onContinueToAp
         subtitle = "Residency proof for Utah Valley University.",
         reassurance = SediBrand.Copy.PRIVATE_DETAILS
     ) {
-        PrivacySplitPanel(
-            shared = request.sharedData,
-            hidden = request.hiddenData
-        )
-        DetailActions(primaryLabel = "Continue", onPrimary = onContinueToApproval)
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            PrivacySplitPanel(
+                shared = request.sharedData,
+                hidden = request.hiddenData
+            )
+            DetailActions(primaryLabel = "Continue", onPrimary = onContinueToApproval)
+        }
     }
 }
 
@@ -1640,6 +1621,7 @@ private fun ApprovalConsentScreen(request: VerificationRequest, onApprove: () ->
         subtitle = "UVU will receive verified residency for enrollment eligibility.",
         reassurance = SediBrand.Copy.REVOKE_ANYTIME
     ) {
+        Spacer(Modifier.height(8.dp))
         DetailActions(
             primaryLabel = "Approve share",
             onPrimary = onApprove,
@@ -1754,8 +1736,18 @@ private fun RevokeSuccessScreen(institutionName: String, onViewActivity: () -> U
 @Composable
 private fun ActivityScreen(events: List<ActivityEvent>) {
     MainTabScaffold(title = "Activity", subtitle = "What you've shared and when") {
-        events.forEachIndexed { index, event ->
-            ActivityTimelineCard(event = event, showConnector = index < events.lastIndex)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(22.dp),
+            color = CardWhite.copy(alpha = 0.92f),
+            tonalElevation = 1.dp,
+            shadowElevation = 2.dp
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 18.dp)) {
+                events.forEachIndexed { index, event ->
+                    ActivityTimelineCard(event = event, showConnector = index < events.lastIndex)
+                }
+            }
         }
     }
 }
@@ -1796,37 +1788,47 @@ private fun DetailScreen(
         containerColor = Mist,
         topBar = {
             androidx.compose.material3.CenterAlignedTopAppBar(
-                title = { Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium) },
+                title = { Text(title, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = androidx.compose.material3.TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = CardWhite,
+                    containerColor = Color.Transparent,
                     titleContentColor = Ink
                 )
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            if (subtitle != null) {
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = Slate)
+        SediScreenBackdrop {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = SediVerticalRhythm.screenHorizontal),
+                ) {
+                    Spacer(Modifier.height(SediVerticalRhythm.detailTopBreathing + 8.dp))
+                    if (subtitle != null) {
+                        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = Slate)
+                    }
+                    if (reassurance != null) {
+                        if (subtitle != null) Spacer(Modifier.height(6.dp))
+                        ReassuranceLine(reassurance)
+                    }
+                    if (subtitle != null || reassurance != null) {
+                        Spacer(Modifier.height(14.dp))
+                    }
+                    content()
+                    Spacer(Modifier.height(48.dp))
+                }
             }
-            if (reassurance != null) {
-                ReassuranceLine(reassurance)
-            }
-            if (subtitle != null || reassurance != null) {
-                Spacer(Modifier.height(4.dp))
-            }
-            content()
         }
     }
 }
@@ -1839,21 +1841,34 @@ private fun DetailActions(
     onSecondary: (() -> Unit)? = null,
     primaryColors: ButtonColors = ButtonDefaults.buttonColors()
 ) {
-    Button(
-        onClick = onPrimary,
-        modifier = Modifier.fillMaxWidth().height(48.dp),
-        shape = RoundedCornerShape(14.dp),
-        colors = primaryColors
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = CardWhite,
+        tonalElevation = 2.dp,
+        shadowElevation = 4.dp
     ) {
-        Text(primaryLabel, fontWeight = FontWeight.SemiBold)
-    }
-    if (secondaryLabel != null && onSecondary != null) {
-        OutlinedButton(
-            onClick = onSecondary,
-            modifier = Modifier.fillMaxWidth().height(46.dp),
-            shape = RoundedCornerShape(14.dp)
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(secondaryLabel)
+            Button(
+                onClick = onPrimary,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = primaryColors
+            ) {
+                Text(primaryLabel, fontWeight = FontWeight.SemiBold)
+            }
+            if (secondaryLabel != null && onSecondary != null) {
+                OutlinedButton(
+                    onClick = onSecondary,
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text(secondaryLabel)
+                }
+            }
         }
     }
 }
@@ -1870,41 +1885,22 @@ private fun ResultScreen(
     extraActionLabel: String? = null,
     onExtraAction: (() -> Unit)? = null
 ) {
-    Column(
-        modifier = Modifier.fillMaxSize().background(Mist).padding(20.dp),
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Spacer(Modifier.height(16.dp))
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            StatusCircle("✓", Success.copy(alpha = 0.12f), textColor = Success, size = 56.dp)
-            Spacer(Modifier.height(16.dp))
-            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Ink, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(8.dp))
-            Text(body, style = MaterialTheme.typography.bodyMedium, color = Slate, textAlign = TextAlign.Center)
-            if (reassurance != null) {
-                Spacer(Modifier.height(10.dp))
-                ReassuranceLine(reassurance)
-            }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Button(onClick = onPrimary, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(14.dp)) {
-                Text(primaryLabel, fontWeight = FontWeight.SemiBold)
-            }
-            if (extraActionLabel != null && onExtraAction != null) {
-                OutlinedButton(onClick = onExtraAction, modifier = Modifier.fillMaxWidth().height(46.dp), shape = RoundedCornerShape(14.dp)) {
-                    Text(extraActionLabel)
-                }
-            }
-            OutlinedButton(onClick = onSecondary, modifier = Modifier.fillMaxWidth().height(46.dp), shape = RoundedCornerShape(14.dp)) {
-                Text(secondaryLabel)
-            }
-        }
-    }
+    CenteredResultLayout(
+        title = title,
+        body = body,
+        primaryLabel = primaryLabel,
+        onPrimary = onPrimary,
+        secondaryLabel = secondaryLabel,
+        onSecondary = onSecondary,
+        reassurance = reassurance,
+        extraActionLabel = extraActionLabel,
+        onExtraAction = onExtraAction
+    )
 }
 
 @Composable
 private fun RequestCard(request: VerificationRequest, onOpenRequest: () -> Unit) {
-    CalmPanel {
+    Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             InstitutionAvatar(request.institutionName)
             Spacer(Modifier.width(10.dp))
@@ -1955,48 +1951,50 @@ private fun InstitutionCard(institution: ConnectedInstitution, onOpenInstitution
 @Composable
 private fun ActivityTimelineCard(event: ActivityEvent, showConnector: Boolean) {
     Row(modifier = Modifier.fillMaxWidth()) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(28.dp)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(24.dp)) {
             Box(
                 modifier = Modifier
-                    .size(12.dp)
-                    .background(TrustBlue, CircleShape)
+                    .size(10.dp)
+                    .background(TrustBlue.copy(alpha = 0.85f), CircleShape)
             )
             if (showConnector) {
                 Box(
                     modifier = Modifier
-                        .width(2.dp)
-                        .height(88.dp)
-                        .background(Slate.copy(alpha = 0.15f))
+                        .width(1.5.dp)
+                        .height(72.dp)
+                        .background(Slate.copy(alpha = 0.12f))
                 )
             }
         }
-        Spacer(Modifier.width(10.dp))
-        Card(
-            colors = CardDefaults.cardColors(containerColor = CardWhite),
-            shape = RoundedCornerShape(18.dp),
+        Spacer(Modifier.width(12.dp))
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 12.dp)
+                .padding(bottom = if (showConnector) 14.dp else 4.dp)
         ) {
-            Column(modifier = Modifier.padding(14.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Text(
-                        event.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f)
-                    )
-                    ActivityResultChip(event.result)
-                }
-                Spacer(Modifier.height(4.dp))
-                Text(event.description, color = Slate, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Spacer(Modifier.height(6.dp))
-                Text(event.timestamp, color = Slate, style = MaterialTheme.typography.labelSmall)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    event.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                ActivityResultChip(event.result)
             }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                event.description,
+                color = Slate,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(event.timestamp, color = Slate, style = MaterialTheme.typography.labelSmall)
         }
     }
 }

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -64,9 +65,9 @@ fun OnboardingPhaseStrip(step: Int) {
     FlowRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+            .padding(bottom = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         OnboardingPhase.entries.forEach { phase ->
             val isActive = phase == active
@@ -81,7 +82,7 @@ fun OnboardingPhaseStrip(step: Int) {
             ) {
                 Text(
                     phase.chipLabel,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
                     color = when {
@@ -117,37 +118,47 @@ fun MainTabScaffold(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Scaffold(
-        containerColor = Mist,
+        containerColor = Color.Transparent,
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(title, fontWeight = FontWeight.Bold, color = Ink)
+                        Text(
+                            title,
+                            fontWeight = FontWeight.Bold,
+                            color = Ink,
+                            style = MaterialTheme.typography.titleMedium
+                        )
                         if (subtitle != null) {
                             Text(
                                 subtitle,
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = Slate
                             )
                         }
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Mist,
+                    containerColor = Color.Transparent,
                     titleContentColor = Ink
                 )
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 20.dp, vertical = 8.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            content = content
-        )
+        SediScreenBackdrop {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = SediVerticalRhythm.screenHorizontal)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Spacer(Modifier.height(SediVerticalRhythm.tabTopBreathing))
+                content()
+                Spacer(Modifier.height(SediVerticalRhythm.focusBreathing))
+            }
+        }
     }
 }
 
@@ -165,6 +176,7 @@ fun ReassuranceLine(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PrivacySplitPanel(
     shared: List<String>,
@@ -174,39 +186,56 @@ fun PrivacySplitPanel(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(20.dp),
         color = CardWhite,
-        tonalElevation = 1.dp
+        tonalElevation = 2.dp,
+        shadowElevation = 4.dp
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(sharedLabel, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = Ink)
-            Spacer(Modifier.height(6.dp))
-            shared.forEach { item ->
-                PrivacySplitRow(item, SediBrand.Success)
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(sharedLabel, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = Ink)
+            Spacer(Modifier.height(8.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                shared.forEach { item ->
+                    PrivacyChip(label = item, tone = SediBrand.Success, positive = true)
+                }
             }
-            Spacer(Modifier.height(10.dp))
-            Text(hiddenLabel, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = Ink)
-            Spacer(Modifier.height(6.dp))
-            hidden.forEach { item ->
-                PrivacySplitRow(item, Slate)
+            Spacer(Modifier.height(14.dp))
+            Text(hiddenLabel, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = Ink)
+            Spacer(Modifier.height(8.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                hidden.forEach { item ->
+                    PrivacyChip(label = item, tone = Slate, positive = false)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun PrivacySplitRow(label: String, tone: Color) {
-    Row(
-        modifier = Modifier.padding(vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically
+private fun PrivacyChip(label: String, tone: Color, positive: Boolean) {
+    Surface(
+        color = tone.copy(alpha = if (positive) 0.12f else 0.08f),
+        shape = RoundedCornerShape(999.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(6.dp)
-                .background(tone, RoundedCornerShape(999.dp))
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(label, color = Ink, style = MaterialTheme.typography.bodyMedium)
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                if (positive) "✓" else "—",
+                color = tone,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(label, color = Ink, style = MaterialTheme.typography.labelMedium)
+        }
     }
 }
 
@@ -241,31 +270,33 @@ fun DetailScaffold(
         },
         bottomBar = {
             if (primaryLabel != null && onPrimary != null) {
-                Surface(color = CardWhite, tonalElevation = 4.dp) {
-                    androidx.compose.material3.Button(
-                        onClick = onPrimary,
-                        enabled = primaryEnabled,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 16.dp)
-                            .height(54.dp),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Text(primaryLabel, fontWeight = FontWeight.SemiBold)
-                    }
-                }
+                SediActionSurface(
+                    primaryLabel = primaryLabel,
+                    onPrimary = onPrimary,
+                    primaryEnabled = primaryEnabled,
+                    elevated = true
+                )
             }
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 18.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(14.dp),
-            content = content
-        )
+        SediScreenBackdrop {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = SediVerticalRhythm.screenHorizontal)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Spacer(Modifier.height(SediVerticalRhythm.detailTopBreathing))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    content = content
+                )
+                Spacer(Modifier.height(SediVerticalRhythm.focusBreathing))
+            }
+        }
     }
 }
 
@@ -275,11 +306,29 @@ fun InvitationHeroCard(
     headline: String,
     detail: String
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        color = StateBlue
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        contentAlignment = Alignment.Center
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .height(24.dp)
+                .background(
+                    Brush.radialGradient(
+                        listOf(StateBlue.copy(alpha = 0.18f), Color.Transparent)
+                    )
+                )
+                .align(Alignment.BottomCenter)
+        )
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            color = StateBlue,
+            shadowElevation = 12.dp
+        ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 InstitutionAvatarChip(institutionName)
@@ -313,6 +362,7 @@ fun InvitationHeroCard(
                     style = MaterialTheme.typography.labelSmall
                 )
             }
+        }
         }
     }
 }
