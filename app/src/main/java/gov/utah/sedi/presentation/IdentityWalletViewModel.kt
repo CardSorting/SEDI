@@ -17,18 +17,35 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 class IdentityWalletViewModel(
-    repository: DemoIdentityRepository = DemoIdentityRepository()
+    private val repository: DemoIdentityRepository = DemoIdentityRepository()
 ) : ViewModel() {
     private var eventCounter = 0
     private var shareCounter = 0
     private val _state = MutableStateFlow(repository.initialState())
     val state: StateFlow<IdentityWalletState> = _state.asStateFlow()
 
-    fun verifyIdentity() {
+    fun createWallet() {
+        _state.update { current ->
+            if (current.walletCreated) return@update current
+            current.copy(walletCreated = true)
+        }
+    }
+
+    fun startIdentityVerification() {
+        _state.update { current ->
+            if (current.identityVerificationStarted) return@update current
+            current.copy(identityVerificationStarted = true)
+        }
+    }
+
+    fun completeIdentityVerification() {
         _state.update { current ->
             if (current.identityVerified) return@update current
             current.copy(
                 identityVerified = true,
+                walletActive = true,
+                residencyCredentialActive = true,
+                credentials = repository.verifiedCredentials(),
                 activity = listOf(
                     newActivity(
                         kind = ActivityKind.IdentityVerified,
@@ -37,13 +54,21 @@ class IdentityWalletViewModel(
                         timestamp = "Just now",
                         institutionName = "State of Utah",
                         result = "Verified"
+                    ),
+                    newActivity(
+                        kind = ActivityKind.IdentityVerified,
+                        title = "Utah Residency Verified",
+                        description = "Utah residency proof is active and ready to share.",
+                        timestamp = "Just now",
+                        institutionName = "State of Utah",
+                        result = "Active"
                     )
                 ) + current.activity
             )
         }
     }
 
-    fun completeOnboarding() {
+    fun finishOnboarding() {
         _state.update { current -> current.copy(onboardingComplete = true) }
     }
 
@@ -132,7 +157,7 @@ class IdentityWalletViewModel(
 
     fun approveResidencyShare(recipient: String = "Requested institution") {
         val sharedItems = listOf("Utah residency verified", "Issuer: State of Utah", "Status: Active")
-        val hiddenItems = listOf("Full address", "Birthdate", "State ID number", "Unrelated credentials")
+        val hiddenItems = listOf("Full address", "Birthdate", "State ID number", "Other credentials")
         _state.update { current ->
             current.copy(
                 credentialShareHistory = listOf(
@@ -200,7 +225,7 @@ class IdentityWalletViewModel(
 
     fun approveLicenseShare(recipient: String = "Requested institution") {
         val sharedItems = listOf("License active", "Issuer: Utah Division of Professional Licensing", "Expiration: December 31, 2026")
-        val hiddenItems = listOf("Unrelated credentials", "Personal identity details not needed")
+        val hiddenItems = listOf("Other credentials", "Personal identity details not needed")
         _state.update { current ->
             current.copy(
                 credentialShareHistory = listOf(

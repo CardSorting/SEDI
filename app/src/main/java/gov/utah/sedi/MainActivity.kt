@@ -42,6 +42,9 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -81,10 +84,13 @@ private val Warning = Color(0xFF9A5B13)
 private val Danger = Color(0xFFB42318)
 
 private object Route {
-    const val OnboardingWelcome = "onboardingWelcome"
-    const val OnboardingIdentitySetup = "onboardingIdentitySetup"
-    const val StateVerificationChecks = "stateVerificationChecks"
-    const val OnboardingComplete = "onboardingComplete"
+    const val UvuInvitation = "uvuInvitation"
+    const val CreateWallet = "createWallet"
+    const val VerifyStateIdentity = "verifyStateIdentity"
+    const val OnboardingVerificationProcessing = "onboardingVerificationProcessing"
+    const val IdentityVerificationComplete = "identityVerificationComplete"
+    const val OnboardingCancelled = "onboardingCancelled"
+    const val WalletLearnMore = "walletLearnMore"
     const val Wallet = "wallet"
     const val StateIdentity = "stateIdentity"
     const val ShareProof = "shareProof"
@@ -102,7 +108,7 @@ private object Route {
     const val RequestDetail = "request/{requestId}"
     const val SharedDataPreview = "sharedDataPreview/{requestId}"
     const val ApprovalConsent = "approvalConsent/{requestId}"
-    const val VerificationProcessing = "verificationProcessing"
+    const val ShareVerificationProcessing = "shareVerificationProcessing"
     const val VerificationSuccess = "verificationSuccess"
     const val PermissionDetail = "permission/{institutionId}"
     const val RevokeConfirmation = "revoke/{institutionId}"
@@ -192,33 +198,53 @@ private fun IdentityWalletApp(viewModel: IdentityWalletViewModel) {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = if (state.onboardingComplete) Route.Wallet else Route.OnboardingWelcome,
+            startDestination = if (state.onboardingComplete) Route.Wallet else Route.UvuInvitation,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Route.OnboardingWelcome) {
-                OnboardingWelcomeScreen(onCreateWallet = { navController.navigate(Route.OnboardingIdentitySetup) })
-            }
-            composable(Route.OnboardingIdentitySetup) {
-                OnboardingIdentitySetupScreen(
-                    onVerifyWithStateIdentity = { navController.navigate(Route.StateVerificationChecks) }
+            composable(Route.UvuInvitation) {
+                UvuInvitationScreen(
+                    onBeginVerification = { navController.navigate(Route.CreateWallet) },
+                    onCancel = { navController.navigate(Route.OnboardingCancelled) }
                 )
             }
-            composable(Route.StateVerificationChecks) {
-                StateVerificationChecksScreen(
-                    onContinue = {
-                        viewModel.verifyIdentity()
-                        navController.navigate(Route.OnboardingComplete)
-                    }
+            composable(Route.OnboardingCancelled) {
+                OnboardingCancelledScreen(onReturn = { navController.navigate(Route.UvuInvitation) })
+            }
+            composable(Route.CreateWallet) {
+                CreateWalletScreen(
+                    onCreateWallet = {
+                        viewModel.createWallet()
+                        navController.navigate(Route.VerifyStateIdentity)
+                    },
+                    onLearnMore = { navController.navigate(Route.WalletLearnMore) },
+                    onBack = { navController.popBackStack() }
                 )
             }
-            composable(Route.OnboardingComplete) {
-                OnboardingCompleteScreen(
-                    onGoToWallet = {
-                        viewModel.completeOnboarding()
-                        navController.navigate(Route.Wallet) {
-                            popUpTo(Route.OnboardingWelcome) { inclusive = true }
+            composable(Route.WalletLearnMore) {
+                WalletLearnMoreScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Route.VerifyStateIdentity) {
+                VerifyStateIdentityScreen(
+                    onVerifyIdentity = {
+                        viewModel.startIdentityVerification()
+                        navController.navigate(Route.OnboardingVerificationProcessing)
+                    },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Route.OnboardingVerificationProcessing) {
+                OnboardingVerificationProcessingScreen(
+                    onFinished = {
+                        viewModel.completeIdentityVerification()
+                        navController.navigate(Route.IdentityVerificationComplete) {
+                            popUpTo(Route.UvuInvitation) { inclusive = false }
                         }
                     }
+                )
+            }
+            composable(Route.IdentityVerificationComplete) {
+                IdentityVerificationCompleteScreen(
+                    onReviewUvuRequest = { navController.navigate("request/uvu-residency") }
                 )
             }
             composable(Route.Wallet) {
@@ -353,7 +379,14 @@ private fun IdentityWalletApp(viewModel: IdentityWalletViewModel) {
                     onReviewSharedData = { navController.navigate("sharedDataPreview/${request.id}") },
                     onDeny = {
                         viewModel.denyRequest(request.id)
-                        navController.navigate(Route.Requests) { popUpTo(Route.Requests) { inclusive = true } }
+                        if (state.onboardingComplete) {
+                            navController.navigate(Route.Requests) { popUpTo(Route.Requests) { inclusive = true } }
+                        } else {
+                            viewModel.finishOnboarding()
+                            navController.navigate(Route.Wallet) {
+                                popUpTo(Route.UvuInvitation) { inclusive = true }
+                            }
+                        }
                     },
                     onBack = { navController.popBackStack() }
                 )
@@ -374,30 +407,41 @@ private fun IdentityWalletApp(viewModel: IdentityWalletViewModel) {
                     request = request,
                     onApprove = {
                         viewModel.approveRequestAndShare(request.id)
-                        navController.navigate(Route.VerificationProcessing)
+                        navController.navigate(Route.ShareVerificationProcessing)
                     },
-                    onDeny = {
+                    onCancel = {
                         viewModel.denyRequest(request.id)
-                        navController.navigate(Route.Requests) { popUpTo(Route.Requests) { inclusive = true } }
+                        if (state.onboardingComplete) {
+                            navController.navigate(Route.Requests) { popUpTo(Route.Requests) { inclusive = true } }
+                        } else {
+                            viewModel.finishOnboarding()
+                            navController.navigate(Route.Wallet) {
+                                popUpTo(Route.UvuInvitation) { inclusive = true }
+                            }
+                        }
                     },
                     onBack = { navController.popBackStack() }
                 )
             }
-            composable(Route.VerificationProcessing) {
-                VerificationProcessingScreen(
+            composable(Route.ShareVerificationProcessing) {
+                ShareVerificationProcessingScreen(
                     onFinished = {
                         navController.navigate(Route.VerificationSuccess) {
-                            popUpTo(Route.VerificationProcessing) { inclusive = true }
+                            popUpTo(Route.ShareVerificationProcessing) { inclusive = true }
                         }
                     }
                 )
             }
             composable(Route.VerificationSuccess) {
                 VerificationSuccessScreen(
-                    onViewUvuAccess = { navController.navigate("permission/uvu") },
+                    onViewUvuAccess = {
+                        viewModel.finishOnboarding()
+                        navController.navigate("permission/uvu")
+                    },
                     onBackToWallet = {
+                        viewModel.finishOnboarding()
                         navController.navigate(Route.Wallet) {
-                            popUpTo(navController.graph.findStartDestination().id)
+                            popUpTo(Route.UvuInvitation) { inclusive = true }
                             launchSingleTop = true
                         }
                     }
@@ -463,103 +507,265 @@ private fun NavIconWithBadge(destination: BottomDestination, pendingCount: Int) 
 }
 
 @Composable
-private fun OnboardingWelcomeScreen(onCreateWallet: () -> Unit) {
-    FullScreenStep(
-        eyebrow = "Utah Identity Wallet",
-        title = "State-backed identity, controlled by you.",
-        body = "Create a wallet for verified state credentials and approve exactly what each institution can receive.",
-        actionLabel = "Create Identity Wallet",
-        onAction = onCreateWallet
+private fun UvuInvitationScreen(onBeginVerification: () -> Unit, onCancel: () -> Unit) {
+    TaskFlowScreen(
+        title = "Utah Valley University requests proof of Utah residency",
+        subtitle = "Complete verification to securely share proof of residency for enrollment eligibility.",
+        primaryLabel = "Begin Verification",
+        onPrimary = onBeginVerification,
+        secondaryLabel = "Cancel",
+        onSecondary = onCancel
     ) {
-        WalletMark()
-        Spacer(Modifier.height(24.dp))
-        DataListPanel(
-            title = "What this wallet does",
-            tone = TrustBlue,
-            rows = listOf("Holds verified state credentials", "Shows requests before sharing", "Lets you revoke access later")
-        )
-    }
-}
-
-@Composable
-private fun OnboardingIdentitySetupScreen(onVerifyWithStateIdentity: () -> Unit) {
-    FullScreenStep(
-        eyebrow = "Identity setup",
-        title = "Connect to State Identity",
-        body = "Begin wallet setup by verifying your identity with the State of Utah.",
-        actionLabel = "Verify with State Identity",
-        onAction = onVerifyWithStateIdentity
-    ) {
-        StatusCircle("ID", TrustBlue.copy(alpha = 0.12f), textColor = TrustBlue)
-        Spacer(Modifier.height(24.dp))
-        DataListPanel(
-            title = "Setup will confirm",
-            tone = TrustBlue,
-            rows = listOf("State identity record", "Utah residency credential", "Wallet eligibility")
-        )
-    }
-}
-
-@Composable
-private fun StateVerificationChecksScreen(onContinue: () -> Unit) {
-    FullScreenStep(
-        eyebrow = "State verification",
-        title = "Verification checks complete",
-        body = "Your state-backed identity wallet is ready to activate.",
-        actionLabel = "Continue",
-        onAction = onContinue
-    ) {
-        StatusCircle("✓", Success.copy(alpha = 0.12f), textColor = Success)
-        Spacer(Modifier.height(24.dp))
-        CheckPanel(rows = listOf("State ID matched", "Utah residency confirmed", "Identity status verified"))
-    }
-}
-
-@Composable
-private fun OnboardingCompleteScreen(onGoToWallet: () -> Unit) {
-    FullScreenStep(
-        eyebrow = "Setup complete",
-        title = "State Identity Verified",
-        body = "Your identity wallet is ready.",
-        actionLabel = "Go to Wallet",
-        onAction = onGoToWallet
-    ) {
-        StatusCircle("✓", Success.copy(alpha = 0.12f), textColor = Success)
-        Spacer(Modifier.height(24.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            InstitutionAvatar("Utah Valley University")
+            Spacer(Modifier.width(14.dp))
+            Column {
+                Text("Utah Valley University", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Enrollment verification request", color = Slate, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+        Spacer(Modifier.height(20.dp))
         CalmPanel {
-            Text("Your wallet is ready.", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(8.dp))
-            Text("You can now review requests, share verified proofs, manage institution access, and audit activity.", color = Slate)
+            InfoRow("Requested proof", "Utah Residency Verification")
+            InfoRow("Purpose", "Enrollment eligibility")
+        }
+        Spacer(Modifier.height(14.dp))
+        CalmPanel {
+            Text("Only approved information will be shared.", color = Slate, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
 
 @Composable
-private fun FullScreenStep(
-    eyebrow: String,
+private fun OnboardingCancelledScreen(onReturn: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().background(Mist).padding(24.dp),
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Spacer(Modifier.height(36.dp))
+        Column {
+            Text("Verification paused", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Ink)
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "You can return when you are ready to complete Utah Valley University's residency verification.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Slate
+            )
+        }
+        Button(onClick = onReturn, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Return to Request", fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+private fun CreateWalletScreen(
+    onCreateWallet: () -> Unit,
+    onLearnMore: () -> Unit,
+    onBack: () -> Unit
+) {
+    TaskFlowScreen(
+        title = "Create Your Utah Identity Wallet",
+        subtitle = "Your wallet stores verified identity proofs and lets you approve or revoke institution access.",
+        primaryLabel = "Create Wallet",
+        onPrimary = onCreateWallet,
+        secondaryLabel = "Learn More",
+        onSecondary = onLearnMore,
+        showBack = true,
+        onBack = onBack
+    ) {
+        DataListPanel(
+            title = "Your wallet lets you",
+            tone = TrustBlue,
+            rows = listOf(
+                "Securely store proofs",
+                "Approve requests",
+                "Manage access",
+                "Review activity history"
+            )
+        )
+    }
+}
+
+@Composable
+private fun WalletLearnMoreScreen(onBack: () -> Unit) {
+    DetailScreen(title = "About Your Wallet", onBack = onBack) {
+        CalmPanel {
+            Text("Why a wallet is needed", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Utah Valley University needs verified proof of residency. Your wallet holds state-verified proofs and lets you review exactly what will be shared before you approve.",
+                color = Slate,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+        CalmPanel {
+            Text("You stay in control", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Approve each request, revoke institution access later, and review a full activity history of what was shared.",
+                color = Slate,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+}
+
+@Composable
+private fun VerifyStateIdentityScreen(onVerifyIdentity: () -> Unit, onBack: () -> Unit) {
+    TaskFlowScreen(
+        title = "Verify Your State Identity",
+        subtitle = "Your identity must be verified before sharing proof with Utah Valley University.",
+        primaryLabel = "Verify Identity",
+        onPrimary = onVerifyIdentity,
+        showBack = true,
+        onBack = onBack
+    ) {
+        CheckPanel(rows = listOf("State ID matched", "Utah residency confirmed", "Identity verification check"))
+        Spacer(Modifier.height(16.dp))
+        CalmPanel {
+            Text("Verification steps", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(10.dp))
+            VerificationPlaceholderRow(label = "State ID scan", status = "Ready")
+            VerificationPlaceholderRow(label = "Face match", status = "Ready")
+            VerificationPlaceholderRow(label = "State verification", status = "Pending")
+        }
+    }
+}
+
+@Composable
+private fun VerificationPlaceholderRow(label: String, status: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, color = Ink, fontWeight = FontWeight.Medium)
+        Text(status, color = Slate, style = MaterialTheme.typography.labelMedium)
+    }
+}
+
+@Composable
+private fun OnboardingVerificationProcessingScreen(onFinished: () -> Unit) {
+    OperationalProcessingScreen(
+        title = "Verifying Your Identity",
+        steps = listOf(
+            "Verifying state identity",
+            "Confirming Utah residency",
+            "Activating identity wallet",
+            "Preparing secure verification proofs"
+        ),
+        onFinished = onFinished
+    )
+}
+
+@Composable
+private fun IdentityVerificationCompleteScreen(onReviewUvuRequest: () -> Unit) {
+    TaskFlowScreen(
+        title = "Identity Verification Complete",
+        subtitle = "Your Utah Identity Wallet is active.",
+        primaryLabel = "Review UVU Request",
+        onPrimary = onReviewUvuRequest
+    ) {
+        CheckPanel(
+            rows = listOf(
+                "State identity verified",
+                "Utah residency verified",
+                "Wallet activated",
+                "Ready to respond to requests"
+            )
+        )
+    }
+}
+
+@Composable
+private fun TaskFlowScreen(
     title: String,
-    body: String,
-    actionLabel: String,
-    onAction: () -> Unit,
+    subtitle: String,
+    primaryLabel: String,
+    onPrimary: () -> Unit,
+    secondaryLabel: String? = null,
+    onSecondary: (() -> Unit)? = null,
+    showBack: Boolean = false,
+    onBack: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(color = Mist, modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Spacer(Modifier.height(36.dp))
+                if (showBack && onBack != null) {
+                    TextButton(onClick = onBack) { Text("Back") }
+                } else {
+                    Spacer(Modifier.height(12.dp))
+                }
+                Spacer(Modifier.height(12.dp))
                 content()
-                Spacer(Modifier.height(32.dp))
-                Text(eyebrow, color = TrustBlue, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(28.dp))
                 Text(title, style = MaterialTheme.typography.headlineLarge, color = Ink, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(14.dp))
-                Text(body, style = MaterialTheme.typography.bodyLarge, color = Slate)
+                Text(subtitle, style = MaterialTheme.typography.bodyLarge, color = Slate)
             }
-            Button(onClick = onAction, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
-                Text(actionLabel, fontWeight = FontWeight.SemiBold)
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 24.dp)) {
+                Button(onClick = onPrimary, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
+                    Text(primaryLabel, fontWeight = FontWeight.SemiBold)
+                }
+                if (secondaryLabel != null && onSecondary != null) {
+                    OutlinedButton(onClick = onSecondary, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
+                        Text(secondaryLabel)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OperationalProcessingScreen(
+    title: String,
+    steps: List<String>,
+    onFinished: () -> Unit,
+    stepDelayMs: Long = 850
+) {
+    var visibleSteps by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        steps.indices.forEach { index ->
+            delay(stepDelayMs)
+            visibleSteps = index + 1
+        }
+        delay(500)
+        onFinished()
+    }
+    Column(
+        modifier = Modifier.fillMaxSize().background(Mist).padding(24.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Ink)
+        Spacer(Modifier.height(24.dp))
+        CalmPanel {
+            steps.forEachIndexed { index, step ->
+                val complete = index < visibleSteps
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    StatusCircle(
+                        text = if (complete) "✓" else "…",
+                        color = if (complete) Success.copy(alpha = 0.12f) else TrustBlue.copy(alpha = 0.12f),
+                        textColor = if (complete) Success else TrustBlue
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        step,
+                        color = if (complete) Ink else Slate,
+                        fontWeight = if (complete) FontWeight.SemiBold else FontWeight.Normal
+                    )
+                }
             }
         }
     }
@@ -580,7 +786,9 @@ private fun WalletScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         ScreenHeader("Wallet", "Your identity home")
-        IdentityStatusCard(onViewIdentity = onViewIdentity)
+        if (state.walletActive) {
+            IdentityStatusCard(onViewIdentity = onViewIdentity)
+        }
         if (pendingRequest != null) {
             PrimaryActionCard(
                 title = pendingRequest.title,
@@ -913,19 +1121,23 @@ private fun RequestDetailScreen(
 ) {
     DetailScreen(title = "Request Detail", onBack = onBack) {
         CalmPanel {
-            Text(request.institutionName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(8.dp))
-            Text("Requests proof of Utah residency", color = Slate)
+            Text(
+                "Utah Valley University Requests Residency Verification",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
             Spacer(Modifier.height(14.dp))
             InfoRow("Purpose", request.purpose)
             InfoRow("Requested proof", request.requestedProof)
             InfoRow("Expires in", request.expires)
+            Spacer(Modifier.height(8.dp))
+            Text("Full address will remain hidden.", color = Slate, style = MaterialTheme.typography.bodyMedium)
         }
         Button(onClick = onReviewSharedData, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
             Text("Review What Will Be Shared", fontWeight = FontWeight.SemiBold)
         }
         OutlinedButton(onClick = onDeny, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
-            Text("Deny")
+            Text("Deny Request")
         }
     }
 }
@@ -934,12 +1146,12 @@ private fun RequestDetailScreen(
 private fun SharedDataPreviewScreen(request: VerificationRequest, onContinueToApproval: () -> Unit, onBack: () -> Unit) {
     DetailScreen(title = "Shared Data Preview", onBack = onBack) {
         CalmPanel {
-            Text("What Utah Valley University receives", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text("Review what Utah Valley University will receive", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             Text("Only the required residency proof is prepared for this request.", color = Slate)
         }
-        DataListPanel("UVU will receive", Success, request.sharedData)
-        DataListPanel("UVU will NOT receive", Slate, request.hiddenData)
+        DataListPanel("UVU Will Receive", Success, request.sharedData)
+        DataListPanel("UVU Will NOT Receive", Slate, request.hiddenData)
         Button(onClick = onContinueToApproval, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
             Text("Continue to Approval", fontWeight = FontWeight.SemiBold)
         }
@@ -947,53 +1159,39 @@ private fun SharedDataPreviewScreen(request: VerificationRequest, onContinueToAp
 }
 
 @Composable
-private fun ApprovalConsentScreen(request: VerificationRequest, onApprove: () -> Unit, onDeny: () -> Unit, onBack: () -> Unit) {
-    DetailScreen(title = "Share Verification", onBack = onBack) {
-        CalmPanel {
-            Text("Approve sharing residency verification with Utah Valley University?", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(8.dp))
-            Text("Review and approve this one-time proof for enrollment eligibility.", color = Slate)
-        }
+private fun ApprovalConsentScreen(request: VerificationRequest, onApprove: () -> Unit, onCancel: () -> Unit, onBack: () -> Unit) {
+    DetailScreen(title = "Approve Residency Verification?", onBack = onBack) {
         DataListPanel(
-            "Permission summary",
+            "Approval summary",
             TrustBlue,
             listOf(
-                "Share once",
-                "For ${request.purpose.lowercase()}",
+                "Share once with Utah Valley University",
+                "Purpose: ${request.purpose}",
                 "No full address shared",
-                "UVU added to connected institutions after approval"
+                "Access can be revoked later"
             )
         )
         Button(onClick = onApprove, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
             Text("Approve Share", fontWeight = FontWeight.SemiBold)
         }
-        OutlinedButton(onClick = onDeny, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
-            Text("Deny")
+        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Cancel")
         }
     }
 }
 
 @Composable
-private fun VerificationProcessingScreen(onFinished: () -> Unit) {
-    LaunchedEffect(Unit) {
-        delay(1400)
-        onFinished()
-    }
-    Column(
-        modifier = Modifier.fillMaxSize().background(Mist).padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        StatusCircle("…", TrustBlue.copy(alpha = 0.12f), textColor = TrustBlue)
-        Spacer(Modifier.height(24.dp))
-        Text("Sending Verification", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Ink)
-        Spacer(Modifier.height(16.dp))
-        DataListPanel(
-            title = "In progress",
-            tone = TrustBlue,
-            rows = listOf("Preparing proof", "Confirming state-issued credential", "Sending verified residency status to UVU")
-        )
-    }
+private fun ShareVerificationProcessingScreen(onFinished: () -> Unit) {
+    OperationalProcessingScreen(
+        title = "Sending Verification",
+        steps = listOf(
+            "Preparing residency proof",
+            "Confirming state-issued verification",
+            "Sending verified residency status to UVU"
+        ),
+        onFinished = onFinished,
+        stepDelayMs = 700
+    )
 }
 
 @Composable
@@ -1003,7 +1201,7 @@ private fun VerificationSuccessScreen(onViewUvuAccess: () -> Unit, onBackToWalle
         body = "Utah Valley University received residency verification. Your full address was not shared. UVU has been added to Connected Institutions.",
         primaryLabel = "View UVU Access",
         onPrimary = onViewUvuAccess,
-        secondaryLabel = "Back to Wallet",
+        secondaryLabel = "Go to Wallet",
         onSecondary = onBackToWallet
     )
 }

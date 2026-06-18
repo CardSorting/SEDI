@@ -101,7 +101,11 @@ data class ShareResult(
 )
 
 data class IdentityWalletState(
+    val walletCreated: Boolean = false,
+    val identityVerificationStarted: Boolean = false,
     val identityVerified: Boolean = false,
+    val walletActive: Boolean = false,
+    val residencyCredentialActive: Boolean = false,
     val onboardingComplete: Boolean = false,
     val credentials: List<Credential> = emptyList(),
     val requests: List<VerificationRequest> = emptyList(),
