@@ -49,18 +49,18 @@ class IdentityWalletViewModel(
                 activity = listOf(
                     newActivity(
                         kind = ActivityKind.IdentityVerified,
-                        title = "State Identity Verified",
-                        description = "State ID matched, Utah residency confirmed, and identity status verified.",
+                        title = "Identity Ownership Confirmed",
+                        description = "Secure verification completed and identity proofs are ready to share.",
                         timestamp = "Just now",
-                        institutionName = "State of Utah",
+                        institutionName = "Identity Wallet",
                         result = "Verified"
                     ),
                     newActivity(
                         kind = ActivityKind.IdentityVerified,
                         title = "Utah Residency Verified",
-                        description = "Utah residency proof is active and ready to share.",
+                        description = "Residency proof credential is active and ready to share with your approval.",
                         timestamp = "Just now",
-                        institutionName = "State of Utah",
+                        institutionName = "Identity Wallet",
                         result = "Active"
                     )
                 ) + current.activity
@@ -102,7 +102,7 @@ class IdentityWalletViewModel(
                 category = "Higher education",
                 accessScope = "Enrollment eligibility",
                 allowedData = listOf("Utah Residency Verification", "Enrollment eligibility confirmation"),
-                hiddenData = listOf("Full address", "Birthdate", "State ID number", "Age Verification", "Professional License", "Activity History"),
+                hiddenData = listOf("Full address", "Birthdate", "Identity documents", "Age Verification", "Professional License", "Activity History"),
                 lastUsed = "Today",
                 expiration = "30 days",
                 status = PermissionStatus.Active
@@ -156,8 +156,8 @@ class IdentityWalletViewModel(
     }
 
     fun approveResidencyShare(recipient: String = "Requested institution") {
-        val sharedItems = listOf("Utah residency verified", "Issuer: State of Utah", "Status: Active")
-        val hiddenItems = listOf("Full address", "Birthdate", "State ID number", "Other credentials")
+        val sharedItems = listOf("Utah residency verified", "Verification credential: Active", "Proof ready to share")
+        val hiddenItems = listOf("Full address", "Birthdate", "Identity documents", "Other credentials")
         _state.update { current ->
             current.copy(
                 credentialShareHistory = listOf(

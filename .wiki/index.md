@@ -51,9 +51,21 @@ The app is structured as a mobile product journey rather than a large scrolling 
 - `revokeAccess("uvu")` marks the UVU permission `Revoked`, changes `lastUsed` to `Revoked today`, and prepends `UVU access revoked` to Activity History.
 - `ActivityScreen` reflects the current `state.activity` list, including seed entries and the live approval/revocation events.
 
+## Run the Demo
+
+**Automatic launcher** (emulator + install + app + on-screen mirror):
+
+```bash
+bash scripts/start-emulator-ui.sh
+```
+
+macOS: double-click `scripts/start-emulator-ui.command` in Finder.
+
+Full setup, `--fresh` reset, and troubleshooting: `.wiki/android-emulator-troubleshooting.md`.
+
 ## Developer Troubleshooting
 
-- `.wiki/android-emulator-troubleshooting.md` — build, install, emulator crashes, stale data, and `Error type 3` (activity not found).
+- `.wiki/android-emulator-troubleshooting.md` — one-command demo launcher, first-time setup, emulator crashes, stale data, and `Error type 3` (activity not found).
 
 ## Verified Build
 

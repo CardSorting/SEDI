@@ -19,7 +19,7 @@ class DemoIdentityRepository {
                 category = "State agency",
                 accessScope = "No active access",
                 allowedData = listOf("No active access"),
-                hiddenData = listOf("Full address", "Birthdate", "State ID number", "Other credentials"),
+                hiddenData = listOf("Full address", "Birthdate", "Identity documents", "Other credentials"),
                 lastUsed = "No active access",
                 expiration = "No active access",
                 status = PermissionStatus.Revoked
@@ -30,7 +30,7 @@ class DemoIdentityRepository {
                 category = "State board",
                 accessScope = "No active access",
                 allowedData = listOf("No active access"),
-                hiddenData = listOf("Full address", "Birthdate", "State ID number", "Other credentials"),
+                hiddenData = listOf("Full address", "Birthdate", "Identity documents", "Other credentials"),
                 lastUsed = "No active access",
                 expiration = "No active access",
                 status = PermissionStatus.Revoked
@@ -41,7 +41,7 @@ class DemoIdentityRepository {
                 category = "Financial institution",
                 accessScope = "No active access",
                 allowedData = listOf("No active access"),
-                hiddenData = listOf("Full address", "Birthdate", "State ID number", "Other credentials"),
+                hiddenData = listOf("Full address", "Birthdate", "Identity documents", "Other credentials"),
                 lastUsed = "No active access",
                 expiration = "No active access",
                 status = PermissionStatus.Revoked
@@ -65,9 +65,9 @@ class DemoIdentityRepository {
         Credential(
             id = "state-id",
             type = CredentialType.StateIdentity,
-            title = "Verified State Identity",
-            subtitle = "State of Utah identity verified",
-            verifiedLabel = "Verified by State of Utah",
+            title = "Verified Identity",
+            subtitle = "Identity ownership confirmed",
+            verifiedLabel = "Identity ownership verified",
             lastVerified = "Today",
             expires = "May 18, 2030"
         ),
@@ -106,8 +106,8 @@ class DemoIdentityRepository {
         title = "Utah Valley University requests proof of Utah residency",
         purpose = "Enrollment eligibility",
         requestedProof = "Utah Residency Verification",
-        sharedData = listOf("Utah Residency Verified", "Verification status: Active", "Issuer: State of Utah"),
-        hiddenData = listOf("Full address", "Birthdate", "State ID number", "Other credentials"),
+        sharedData = listOf("Utah Residency Verified", "Verification status: Active", "Proof ready to share"),
+        hiddenData = listOf("Full address", "Birthdate", "Identity documents", "Other credentials"),
         receivedAt = "Just now",
         expires = "7 days"
     )

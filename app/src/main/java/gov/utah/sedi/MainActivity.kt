@@ -49,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -71,6 +72,17 @@ import gov.utah.sedi.domain.RequestStatus
 import gov.utah.sedi.domain.ShareResult
 import gov.utah.sedi.domain.VerificationRequest
 import gov.utah.sedi.presentation.IdentityWalletViewModel
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.delay
 
 private val Ink = Color(0xFF102A43)
@@ -83,12 +95,18 @@ private val Success = Color(0xFF197A56)
 private val Warning = Color(0xFF9A5B13)
 private val Danger = Color(0xFFB42318)
 
+private const val ONBOARDING_STEPS = 9
+
 private object Route {
     const val UvuInvitation = "uvuInvitation"
     const val CreateWallet = "createWallet"
-    const val VerifyStateIdentity = "verifyStateIdentity"
-    const val OnboardingVerificationProcessing = "onboardingVerificationProcessing"
-    const val IdentityVerificationComplete = "identityVerificationComplete"
+    const val SecureIdentitySetup = "secureIdentitySetup"
+    const val IdentityCapture = "identityCapture"
+    const val FacialVerification = "facialVerification"
+    const val ResidencyProofSelection = "residencyProofSelection"
+    const val VerificationReview = "verificationReview"
+    const val SecureWalletActivation = "secureWalletActivation"
+    const val WalletReady = "walletReady"
     const val OnboardingCancelled = "onboardingCancelled"
     const val WalletLearnMore = "walletLearnMore"
     const val Wallet = "wallet"
@@ -212,10 +230,11 @@ private fun IdentityWalletApp(viewModel: IdentityWalletViewModel) {
             }
             composable(Route.CreateWallet) {
                 CreateWalletScreen(
+                    walletCreated = state.walletCreated,
                     onCreateWallet = {
                         viewModel.createWallet()
-                        navController.navigate(Route.VerifyStateIdentity)
                     },
+                    onContinue = { navController.navigate(Route.SecureIdentitySetup) },
                     onLearnMore = { navController.navigate(Route.WalletLearnMore) },
                     onBack = { navController.popBackStack() }
                 )
@@ -223,27 +242,51 @@ private fun IdentityWalletApp(viewModel: IdentityWalletViewModel) {
             composable(Route.WalletLearnMore) {
                 WalletLearnMoreScreen(onBack = { navController.popBackStack() })
             }
-            composable(Route.VerifyStateIdentity) {
-                VerifyStateIdentityScreen(
-                    onVerifyIdentity = {
+            composable(Route.SecureIdentitySetup) {
+                SecureIdentitySetupScreen(
+                    onStartVerification = {
                         viewModel.startIdentityVerification()
-                        navController.navigate(Route.OnboardingVerificationProcessing)
+                        navController.navigate(Route.IdentityCapture)
                     },
                     onBack = { navController.popBackStack() }
                 )
             }
-            composable(Route.OnboardingVerificationProcessing) {
-                OnboardingVerificationProcessingScreen(
+            composable(Route.IdentityCapture) {
+                IdentityCaptureScreen(
+                    onContinue = { navController.navigate(Route.FacialVerification) },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Route.FacialVerification) {
+                FacialVerificationScreen(
+                    onContinue = { navController.navigate(Route.ResidencyProofSelection) },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Route.ResidencyProofSelection) {
+                ResidencyProofSelectionScreen(
+                    onContinue = { navController.navigate(Route.VerificationReview) },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Route.VerificationReview) {
+                VerificationReviewScreen(
+                    onActivateWallet = { navController.navigate(Route.SecureWalletActivation) },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Route.SecureWalletActivation) {
+                SecureWalletActivationScreen(
                     onFinished = {
                         viewModel.completeIdentityVerification()
-                        navController.navigate(Route.IdentityVerificationComplete) {
+                        navController.navigate(Route.WalletReady) {
                             popUpTo(Route.UvuInvitation) { inclusive = false }
                         }
                     }
                 )
             }
-            composable(Route.IdentityVerificationComplete) {
-                IdentityVerificationCompleteScreen(
+            composable(Route.WalletReady) {
+                WalletReadyScreen(
                     onReviewUvuRequest = { navController.navigate("request/uvu-residency") }
                 )
             }
@@ -508,7 +551,8 @@ private fun NavIconWithBadge(destination: BottomDestination, pendingCount: Int) 
 
 @Composable
 private fun UvuInvitationScreen(onBeginVerification: () -> Unit, onCancel: () -> Unit) {
-    TaskFlowScreen(
+    VerificationFlowScreen(
+        step = 1,
         title = "Utah Valley University requests proof of Utah residency",
         subtitle = "Complete verification to securely share proof of residency for enrollment eligibility.",
         primaryLabel = "Begin Verification",
@@ -528,10 +572,15 @@ private fun UvuInvitationScreen(onBeginVerification: () -> Unit, onCancel: () ->
         CalmPanel {
             InfoRow("Requested proof", "Utah Residency Verification")
             InfoRow("Purpose", "Enrollment eligibility")
+            InfoRow("Expires in", "7 days")
         }
         Spacer(Modifier.height(14.dp))
         CalmPanel {
-            Text("Only approved information will be shared.", color = Slate, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "Only approved information will be shared with Utah Valley University.",
+                color = Slate,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }
@@ -560,28 +609,334 @@ private fun OnboardingCancelledScreen(onReturn: () -> Unit) {
 
 @Composable
 private fun CreateWalletScreen(
+    walletCreated: Boolean,
     onCreateWallet: () -> Unit,
+    onContinue: () -> Unit,
     onLearnMore: () -> Unit,
     onBack: () -> Unit
 ) {
-    TaskFlowScreen(
+    var showCreated by remember(walletCreated) { mutableStateOf(walletCreated) }
+    VerificationFlowScreen(
+        step = 2,
         title = "Create Your Utah Identity Wallet",
-        subtitle = "Your wallet stores verified identity proofs and lets you approve or revoke institution access.",
-        primaryLabel = "Create Wallet",
-        onPrimary = onCreateWallet,
-        secondaryLabel = "Learn More",
-        onSecondary = onLearnMore,
+        subtitle = "Create a secure identity wallet to manage verification requests and permissions.",
+        primaryLabel = if (showCreated) "Continue" else "Create Wallet",
+        onPrimary = {
+            if (showCreated) {
+                onContinue()
+            } else {
+                onCreateWallet()
+                showCreated = true
+            }
+        },
+        secondaryLabel = if (showCreated) null else "Learn More",
+        onSecondary = if (showCreated) null else onLearnMore,
         showBack = true,
-        onBack = onBack
+        onBack = onBack,
+        primaryEnabled = true
     ) {
         DataListPanel(
             title = "Your wallet lets you",
             tone = TrustBlue,
             rows = listOf(
-                "Securely store proofs",
-                "Approve requests",
-                "Manage access",
-                "Review activity history"
+                "Store verified proofs",
+                "Approve institution requests",
+                "Review access history",
+                "Revoke access anytime"
+            )
+        )
+        if (showCreated) {
+            Spacer(Modifier.height(16.dp))
+            VerificationStatusBanner(
+                label = "Wallet Created",
+                detail = "Your secure identity wallet is ready for verification setup.",
+                complete = true
+            )
+        }
+    }
+}
+
+@Composable
+private fun SecureIdentitySetupScreen(onStartVerification: () -> Unit, onBack: () -> Unit) {
+    VerificationFlowScreen(
+        step = 3,
+        title = "Secure Your Identity",
+        subtitle = "To verify residency for Utah Valley University, we need to confirm your identity and create secure verification proofs.",
+        primaryLabel = "Start Secure Verification",
+        onPrimary = onStartVerification,
+        showBack = true,
+        onBack = onBack
+    ) {
+        CalmPanel {
+            Text("Setup checklist", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(10.dp))
+            VerificationChecklistRow("Confirm identity ownership", pending = true)
+            VerificationChecklistRow("Verify residency eligibility", pending = true)
+            VerificationChecklistRow("Enable secure proof sharing", pending = true)
+        }
+        Spacer(Modifier.height(14.dp))
+        CalmPanel {
+            Text(
+                "Only approved information will be shared.",
+                color = Slate,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+}
+
+@Composable
+private fun IdentityCaptureScreen(onContinue: () -> Unit, onBack: () -> Unit) {
+    var stage by remember { mutableIntStateOf(0) }
+    var selectedDoc by remember { mutableStateOf("Driver license") }
+    LaunchedEffect(Unit) {
+        delay(1200)
+        stage = 1
+        delay(1400)
+        stage = 2
+        delay(1100)
+        stage = 3
+    }
+    val canContinue = stage >= 3
+    VerificationFlowScreen(
+        step = 4,
+        title = "Capture Identity Document",
+        subtitle = "Capture a readable photo of an identity document you own. This stays on your device until you approve sharing.",
+        primaryLabel = "Continue",
+        onPrimary = onContinue,
+        showBack = true,
+        onBack = onBack,
+        primaryEnabled = canContinue
+    ) {
+        Text("Document type", color = Slate, style = MaterialTheme.typography.labelMedium)
+        Spacer(Modifier.height(8.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                DocumentTypeChip("Driver license", selectedDoc == "Driver license", { selectedDoc = "Driver license" })
+                DocumentTypeChip("State credential", selectedDoc == "State credential", { selectedDoc = "State credential" })
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                DocumentTypeChip("Passport", selectedDoc == "Passport", { selectedDoc = "Passport" })
+                DocumentTypeChip("University ID", selectedDoc == "University ID", { selectedDoc = "University ID" })
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        IdentityCaptureFrame(active = stage < 2, captured = stage >= 2)
+        Spacer(Modifier.height(16.dp))
+        CalmPanel {
+            VerificationStageRow("Document readability check", complete = stage >= 1, inProgress = stage == 0)
+            VerificationStageRow("Authenticity scan", complete = stage >= 2, inProgress = stage == 1)
+            VerificationStageRow("Secure document capture", complete = stage >= 3, inProgress = stage == 2)
+        }
+        if (stage >= 3) {
+            Spacer(Modifier.height(14.dp))
+            VerificationStatusBanner(
+                label = "Document captured successfully",
+                detail = "$selectedDoc ready for identity ownership verification.",
+                complete = true
+            )
+        }
+    }
+}
+
+@Composable
+private fun FacialVerificationScreen(onContinue: () -> Unit, onBack: () -> Unit) {
+    var stage by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        delay(1000)
+        stage = 1
+        delay(1800)
+        stage = 2
+        delay(1800)
+        stage = 3
+        delay(1600)
+        stage = 4
+        delay(1200)
+        stage = 5
+    }
+    val prompt = when (stage) {
+        0 -> "Center your face in the frame"
+        1 -> "Look left"
+        2 -> "Look right"
+        3 -> "Blink naturally"
+        else -> "Verification complete"
+    }
+    VerificationFlowScreen(
+        step = 5,
+        title = "Confirm Identity Ownership",
+        subtitle = "Complete a quick facial verification to confirm that you are the owner of this identity.",
+        primaryLabel = "Continue",
+        onPrimary = onContinue,
+        showBack = true,
+        onBack = onBack,
+        primaryEnabled = stage >= 5
+    ) {
+        FacialScanFrame(active = stage in 1..3, complete = stage >= 5, prompt = prompt)
+        Spacer(Modifier.height(16.dp))
+        CalmPanel {
+            VerificationStageRow("Liveness detection", complete = stage >= 4, inProgress = stage in 1..3)
+            VerificationStageRow("Facial consistency confirmed", complete = stage >= 5, inProgress = stage == 4)
+            VerificationStageRow("Spoof prevention passed", complete = stage >= 5, inProgress = stage == 4)
+        }
+        if (stage >= 5) {
+            Spacer(Modifier.height(14.dp))
+            VerificationStatusBanner(
+                label = "Identity Ownership Confirmed",
+                detail = "Your identity ownership has been securely verified.",
+                complete = true
+            )
+        }
+    }
+}
+
+@Composable
+private fun ResidencyProofSelectionScreen(onContinue: () -> Unit, onBack: () -> Unit) {
+    var selectedProof by remember { mutableStateOf<String?>(null) }
+    var verifying by remember { mutableStateOf(false) }
+    var verified by remember { mutableStateOf(false) }
+    LaunchedEffect(verifying) {
+        if (verifying && !verified) {
+            delay(900)
+            delay(1200)
+            delay(1000)
+            verified = true
+            verifying = false
+        }
+    }
+    val proofOptions = listOf(
+        "Utility bill" to "Recent bill showing Utah address",
+        "University enrollment document" to "Official enrollment record",
+        "Lease agreement" to "Signed lease with Utah address",
+        "Bank statement" to "Statement with Utah address",
+        "Verified institution credential" to "Credential from a trusted institution"
+    )
+    VerificationFlowScreen(
+        step = 6,
+        title = "Verify Utah Residency",
+        subtitle = "Choose a supporting document to create your residency verification credential.",
+        primaryLabel = if (verified) "Continue" else "Verify Residency",
+        onPrimary = {
+            if (verified) {
+                onContinue()
+            } else if (selectedProof != null) {
+                verifying = true
+            }
+        },
+        showBack = true,
+        onBack = onBack,
+        primaryEnabled = (selectedProof != null && !verifying) || verified
+    ) {
+        proofOptions.forEach { (title, detail) ->
+            ProofSelectionCard(
+                title = title,
+                detail = detail,
+                selected = selectedProof == title,
+                enabled = !verifying && !verified,
+                onClick = { selectedProof = title }
+            )
+            Spacer(Modifier.height(10.dp))
+        }
+        CalmPanel {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(72.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFF0F4F8))
+                    .border(1.dp, Color(0xFFD0D7DE), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    if (verified) "Residency proof verified" else if (verifying) "Verifying residency proof…" else "Upload placeholder — tap a proof type above",
+                    color = Slate,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        CalmPanel {
+            Text(
+                "Your residency proof is used only to create a verification credential.",
+                color = Slate,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+        if (verified) {
+            Spacer(Modifier.height(14.dp))
+            VerificationStatusBanner(
+                label = "Utah Residency Verified",
+                detail = "A portable residency proof is ready to share with your approval.",
+                complete = true
+            )
+        }
+    }
+}
+
+@Composable
+private fun VerificationReviewScreen(onActivateWallet: () -> Unit, onBack: () -> Unit) {
+    VerificationFlowScreen(
+        step = 7,
+        title = "Verification Ready",
+        subtitle = "Review the proofs created during secure verification before activating your wallet.",
+        primaryLabel = "Activate Wallet",
+        onPrimary = onActivateWallet,
+        showBack = true,
+        onBack = onBack
+    ) {
+        DataListPanel(
+            title = "Verified",
+            tone = Success,
+            rows = listOf(
+                "Identity Ownership Confirmed",
+                "Utah Residency Verified",
+                "Secure Identity Wallet Ready"
+            )
+        )
+        Spacer(Modifier.height(12.dp))
+        DataListPanel(
+            title = "Not Shared Automatically",
+            tone = Slate,
+            rows = listOf(
+                "Full address",
+                "Uploaded documents",
+                "Facial scan data",
+                "Identity documents"
+            )
+        )
+    }
+}
+
+@Composable
+private fun SecureWalletActivationScreen(onFinished: () -> Unit) {
+    OperationalProcessingScreen(
+        title = "Secure Wallet Activation",
+        subtitle = "Preparing your verification wallet",
+        steps = listOf(
+            "Generating secure proofs",
+            "Enabling institution permissions",
+            "Preparing audit history",
+            "Activating verification wallet"
+        ),
+        step = 8,
+        onFinished = onFinished,
+        stepDelayMs = 1100
+    )
+}
+
+@Composable
+private fun WalletReadyScreen(onReviewUvuRequest: () -> Unit) {
+    VerificationFlowScreen(
+        step = 9,
+        title = "Wallet Ready",
+        subtitle = "You can now respond to Utah Valley University's verification request.",
+        primaryLabel = "Review UVU Request",
+        onPrimary = onReviewUvuRequest
+    ) {
+        CheckPanel(
+            rows = listOf(
+                "Identity Ownership Verified",
+                "Utah Residency Verified",
+                "Secure proof sharing enabled"
             )
         )
     }
@@ -594,7 +949,7 @@ private fun WalletLearnMoreScreen(onBack: () -> Unit) {
             Text("Why a wallet is needed", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             Text(
-                "Utah Valley University needs verified proof of residency. Your wallet holds state-verified proofs and lets you review exactly what will be shared before you approve.",
+                "Utah Valley University needs verified proof of residency. Your wallet holds secure verification proofs and lets you review exactly what will be shared before you approve.",
                 color = Slate,
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -612,74 +967,8 @@ private fun WalletLearnMoreScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun VerifyStateIdentityScreen(onVerifyIdentity: () -> Unit, onBack: () -> Unit) {
-    TaskFlowScreen(
-        title = "Verify Your State Identity",
-        subtitle = "Your identity must be verified before sharing proof with Utah Valley University.",
-        primaryLabel = "Verify Identity",
-        onPrimary = onVerifyIdentity,
-        showBack = true,
-        onBack = onBack
-    ) {
-        CheckPanel(rows = listOf("State ID matched", "Utah residency confirmed", "Identity verification check"))
-        Spacer(Modifier.height(16.dp))
-        CalmPanel {
-            Text("Verification steps", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(10.dp))
-            VerificationPlaceholderRow(label = "State ID scan", status = "Ready")
-            VerificationPlaceholderRow(label = "Face match", status = "Ready")
-            VerificationPlaceholderRow(label = "State verification", status = "Pending")
-        }
-    }
-}
-
-@Composable
-private fun VerificationPlaceholderRow(label: String, status: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, color = Ink, fontWeight = FontWeight.Medium)
-        Text(status, color = Slate, style = MaterialTheme.typography.labelMedium)
-    }
-}
-
-@Composable
-private fun OnboardingVerificationProcessingScreen(onFinished: () -> Unit) {
-    OperationalProcessingScreen(
-        title = "Verifying Your Identity",
-        steps = listOf(
-            "Verifying state identity",
-            "Confirming Utah residency",
-            "Activating identity wallet",
-            "Preparing secure verification proofs"
-        ),
-        onFinished = onFinished
-    )
-}
-
-@Composable
-private fun IdentityVerificationCompleteScreen(onReviewUvuRequest: () -> Unit) {
-    TaskFlowScreen(
-        title = "Identity Verification Complete",
-        subtitle = "Your Utah Identity Wallet is active.",
-        primaryLabel = "Review UVU Request",
-        onPrimary = onReviewUvuRequest
-    ) {
-        CheckPanel(
-            rows = listOf(
-                "State identity verified",
-                "Utah residency verified",
-                "Wallet activated",
-                "Ready to respond to requests"
-            )
-        )
-    }
-}
-
-@Composable
-private fun TaskFlowScreen(
+private fun VerificationFlowScreen(
+    step: Int,
     title: String,
     subtitle: String,
     primaryLabel: String,
@@ -688,6 +977,7 @@ private fun TaskFlowScreen(
     onSecondary: (() -> Unit)? = null,
     showBack: Boolean = false,
     onBack: (() -> Unit)? = null,
+    primaryEnabled: Boolean = true,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(color = Mist, modifier = Modifier.fillMaxSize()) {
@@ -699,26 +989,283 @@ private fun TaskFlowScreen(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
+                OnboardingProgress(step)
                 if (showBack && onBack != null) {
                     TextButton(onClick = onBack) { Text("Back") }
                 } else {
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(4.dp))
                 }
-                Spacer(Modifier.height(12.dp))
-                content()
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(8.dp))
                 Text(title, style = MaterialTheme.typography.headlineLarge, color = Ink, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(12.dp))
                 Text(subtitle, style = MaterialTheme.typography.bodyLarge, color = Slate)
+                Spacer(Modifier.height(24.dp))
+                content()
             }
             Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 24.dp)) {
-                Button(onClick = onPrimary, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
+                Button(
+                    onClick = onPrimary,
+                    enabled = primaryEnabled,
+                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
                     Text(primaryLabel, fontWeight = FontWeight.SemiBold)
                 }
                 if (secondaryLabel != null && onSecondary != null) {
-                    OutlinedButton(onClick = onSecondary, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
+                    OutlinedButton(
+                        onClick = onSecondary,
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
                         Text(secondaryLabel)
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OnboardingProgress(step: Int, total: Int = ONBOARDING_STEPS) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            "Step $step of $total",
+            color = TrustBlue,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(Modifier.height(8.dp))
+        LinearProgressIndicator(
+            progress = { step.toFloat() / total },
+            modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+            color = StateBlue,
+            trackColor = Color(0xFFE2E8F0),
+            strokeCap = StrokeCap.Round
+        )
+    }
+}
+
+@Composable
+private fun VerificationChecklistRow(label: String, pending: Boolean) {
+    Row(modifier = Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        StatusCircle(
+            text = if (pending) "○" else "✓",
+            color = if (pending) TrustBlue.copy(alpha = 0.12f) else Success.copy(alpha = 0.12f),
+            textColor = if (pending) TrustBlue else Success
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(label, color = Ink, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+private fun VerificationStageRow(label: String, complete: Boolean, inProgress: Boolean = false) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        StatusCircle(
+            text = when {
+                complete -> "✓"
+                inProgress -> "…"
+                else -> "○"
+            },
+            color = when {
+                complete -> Success.copy(alpha = 0.12f)
+                inProgress -> TrustBlue.copy(alpha = 0.12f)
+                else -> Color(0xFFE8EDF2)
+            },
+            textColor = when {
+                complete -> Success
+                inProgress -> TrustBlue
+                else -> Slate
+            }
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            label,
+            color = if (complete) Ink else Slate,
+            fontWeight = if (complete) FontWeight.SemiBold else FontWeight.Normal
+        )
+    }
+}
+
+@Composable
+private fun VerificationStatusBanner(label: String, detail: String, complete: Boolean) {
+    CalmPanel {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            StatusCircle(
+                text = if (complete) "✓" else "…",
+                color = if (complete) Success.copy(alpha = 0.12f) else TrustBlue.copy(alpha = 0.12f),
+                textColor = if (complete) Success else TrustBlue
+            )
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(label, fontWeight = FontWeight.SemiBold, color = Ink)
+                Text(detail, color = Slate, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+@Composable
+private fun IdentityCaptureFrame(active: Boolean, captured: Boolean) {
+    val borderColor = when {
+        captured -> Success
+        active -> TrustBlue
+        else -> Color(0xFFD0D7DE)
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFFF0F4F8))
+            .border(2.dp, borderColor, RoundedCornerShape(16.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        if (active) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .height(120.dp)
+                    .border(1.dp, TrustBlue.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+            )
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                when {
+                    captured -> "Document captured"
+                    active -> "Align document within frame"
+                    else -> "Preparing camera"
+                },
+                fontWeight = FontWeight.SemiBold,
+                color = Ink
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                when {
+                    captured -> "Ready for secure verification"
+                    active -> "Hold steady — checking readability"
+                    else -> "Camera initializing"
+                },
+                color = Slate,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+@Composable
+private fun FacialScanFrame(active: Boolean, complete: Boolean, prompt: String) {
+    val infiniteTransition = rememberInfiniteTransition(label = "facialScan")
+    val ringAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.9f,
+        animationSpec = infiniteRepeatable(tween(1400, easing = LinearEasing), RepeatMode.Reverse),
+        label = "ringAlpha"
+    )
+    val ringScale by infiniteTransition.animateFloat(
+        initialValue = 0.96f,
+        targetValue = 1.04f,
+        animationSpec = infiniteRepeatable(tween(1800, easing = LinearEasing), RepeatMode.Reverse),
+        label = "ringScale"
+    )
+    val borderColor = when {
+        complete -> Success
+        active -> TrustBlue
+        else -> Color(0xFFD0D7DE)
+    }
+    val ringSize = if (active) (180f * ringScale).dp else 180.dp
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(240.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color(0xFF1A2B3C)),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(ringSize)
+                .border(
+                    width = if (active) 3.dp else 2.dp,
+                    color = borderColor.copy(alpha = if (active) ringAlpha else 1f),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(140.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF2D4156)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    if (complete) "✓" else "◎",
+                    color = if (complete) Success else Color.White.copy(alpha = 0.85f),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineMedium
+                )
+            }
+        }
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(prompt, color = Color.White, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                if (complete) "Identity ownership confirmed" else "Secure facial verification",
+                color = Color.White.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+@Composable
+private fun DocumentTypeChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val background = if (selected) TrustBlue.copy(alpha = 0.12f) else Color(0xFFF0F4F8)
+    val borderColor = if (selected) TrustBlue else Color(0xFFD0D7DE)
+    Text(
+        text = label,
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(background)
+            .border(1.dp, borderColor, RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        color = if (selected) TrustBlue else Slate,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+    )
+}
+
+@Composable
+private fun ProofSelectionCard(
+    title: String,
+    detail: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    val clickableModifier = if (enabled) Modifier.clickable(onClick = onClick) else Modifier
+    Box(modifier = Modifier.fillMaxWidth().then(clickableModifier)) {
+        CalmPanel {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StatusCircle(
+                    text = if (selected) "✓" else "○",
+                    color = if (selected) TrustBlue.copy(alpha = 0.12f) else Color(0xFFE8EDF2),
+                    textColor = if (selected) TrustBlue else Slate
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(title, fontWeight = FontWeight.SemiBold, color = Ink)
+                    Text(detail, color = Slate, style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -730,6 +1277,8 @@ private fun OperationalProcessingScreen(
     title: String,
     steps: List<String>,
     onFinished: () -> Unit,
+    subtitle: String? = null,
+    step: Int? = null,
     stepDelayMs: Long = 850
 ) {
     var visibleSteps by remember { mutableIntStateOf(0) }
@@ -738,14 +1287,22 @@ private fun OperationalProcessingScreen(
             delay(stepDelayMs)
             visibleSteps = index + 1
         }
-        delay(500)
+        delay(700)
         onFinished()
     }
     Column(
         modifier = Modifier.fillMaxSize().background(Mist).padding(24.dp),
         verticalArrangement = Arrangement.Center
     ) {
+        if (step != null) {
+            OnboardingProgress(step)
+            Spacer(Modifier.height(20.dp))
+        }
         Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Ink)
+        if (subtitle != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(subtitle, color = Slate, style = MaterialTheme.typography.bodyLarge)
+        }
         Spacer(Modifier.height(24.dp))
         CalmPanel {
             steps.forEachIndexed { index, step ->
@@ -808,9 +1365,9 @@ private fun WalletScreen(
 @Composable
 private fun IdentityStatusCard(onViewIdentity: () -> Unit) {
     CalmPanel {
-        Text("State Identity Verified", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text("Identity Ownership Verified", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
-        Text("Your Utah identity wallet is active.", color = Slate, style = MaterialTheme.typography.bodyMedium)
+        Text("Your secure identity wallet is active.", color = Slate, style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(14.dp))
         Button(onClick = onViewIdentity, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
             Text("View Identity")
@@ -911,14 +1468,13 @@ private fun ProofTypeOptionCard(title: String, description: String, onClick: () 
 
 @Composable
 private fun StateIdentityDetailScreen(credential: Credential, onBack: () -> Unit) {
-    DetailScreen(title = "State Identity", onBack = onBack) {
+    DetailScreen(title = "Verified Identity", onBack = onBack) {
         CalmPanel {
-            Text("State Identity Verified", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text("Identity Ownership Verified", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(14.dp))
-            InfoRow("Issuer", "State of Utah")
-            InfoRow("Status", "Active")
+            InfoRow("Proof status", "Active")
             InfoRow("Verified on", credential.lastVerified)
-            InfoRow("Wallet", "Identity wallet active")
+            InfoRow("Wallet", "Secure identity wallet active")
         }
     }
 }
@@ -976,8 +1532,8 @@ private fun ShareResidencyReviewScreen(onApprove: () -> Unit, onCancel: () -> Un
             Spacer(Modifier.height(8.dp))
             Text("Confirm what will be shared before sending verification.", color = Slate)
         }
-        DataListPanel("Shared", Success, listOf("Utah residency verified", "Issuer: State of Utah", "Status: Active"))
-        DataListPanel("Hidden", Slate, listOf("Full address", "Birthdate", "State ID number", "Unrelated credentials"))
+        DataListPanel("Shared", Success, listOf("Utah residency verified", "Verification credential: Active", "Proof ready to share"))
+        DataListPanel("Hidden", Slate, listOf("Full address", "Birthdate", "Identity documents", "Unrelated credentials"))
         Button(onClick = onApprove, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
             Text("Approve Share", fontWeight = FontWeight.SemiBold)
         }
@@ -1119,12 +1675,18 @@ private fun RequestDetailScreen(
     onDeny: () -> Unit,
     onBack: () -> Unit
 ) {
-    DetailScreen(title = "Request Detail", onBack = onBack) {
+    DetailScreen(title = "UVU Request", onBack = onBack) {
         CalmPanel {
             Text(
-                "Utah Valley University Requests Residency Verification",
+                "Utah Valley University requests proof of Utah residency",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Your identity is verified. Review what will be shared before approving this enrollment request.",
+                color = Slate,
+                style = MaterialTheme.typography.bodyMedium
             )
             Spacer(Modifier.height(14.dp))
             InfoRow("Purpose", request.purpose)
@@ -1186,7 +1748,7 @@ private fun ShareVerificationProcessingScreen(onFinished: () -> Unit) {
         title = "Sending Verification",
         steps = listOf(
             "Preparing residency proof",
-            "Confirming state-issued verification",
+            "Confirming secure verification credential",
             "Sending verified residency status to UVU"
         ),
         onFinished = onFinished,
