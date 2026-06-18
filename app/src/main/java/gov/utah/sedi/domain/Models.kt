@@ -32,6 +32,7 @@ data class VerificationRequest(
     val sharedData: List<String>,
     val hiddenData: List<String>,
     val receivedAt: String,
+    val expires: String,
     val status: RequestStatus = RequestStatus.Pending
 )
 
@@ -55,7 +56,9 @@ data class ConnectedInstitution(
 
 enum class ActivityKind {
     IdentityVerified,
+    RequestReceived,
     CredentialShared,
+    PermissionCreated,
     RequestApproved,
     RequestDenied,
     TemporaryAccessGranted,
@@ -68,6 +71,8 @@ data class ActivityEvent(
     val title: String,
     val description: String,
     val timestamp: String,
+    val institutionName: String = "Wallet",
+    val result: String,
     val institutionId: String? = null
 )
 
@@ -78,6 +83,7 @@ data class DelegationDraft(
 )
 
 data class IdentityWalletState(
+    val identityVerified: Boolean = false,
     val onboardingComplete: Boolean = false,
     val credentials: List<Credential> = emptyList(),
     val requests: List<VerificationRequest> = emptyList(),

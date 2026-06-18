@@ -16,17 +16,8 @@ class DemoIdentityRepository {
                 id = "state-id",
                 type = CredentialType.StateIdentity,
                 title = "Verified State Identity",
-                subtitle = "Utah Driver License •••• 2048",
-                verifiedLabel = "State identity verified",
-                lastVerified = "Today",
-                expires = "May 18, 2030"
-            ),
-            Credential(
-                id = "age",
-                type = CredentialType.AgeVerification,
-                title = "Age Verification",
-                subtitle = "Over 21 confirmation",
-                verifiedLabel = "Age verified",
+                subtitle = "State of Utah identity verified",
+                verifiedLabel = "Verified by State of Utah",
                 lastVerified = "Today",
                 expires = "May 18, 2030"
             ),
@@ -38,6 +29,15 @@ class DemoIdentityRepository {
                 verifiedLabel = "Residency verified",
                 lastVerified = "Today",
                 expires = "June 18, 2027"
+            ),
+            Credential(
+                id = "age",
+                type = CredentialType.AgeVerification,
+                title = "Age Verification",
+                subtitle = "Over 21 confirmation",
+                verifiedLabel = "Age verified",
+                lastVerified = "Today",
+                expires = "May 18, 2030"
             ),
             Credential(
                 id = "license",
@@ -53,22 +53,35 @@ class DemoIdentityRepository {
             VerificationRequest(
                 id = "uofu-residency",
                 institutionName = "University of Utah",
-                title = "Proof of Utah residency requested",
+                title = "University of Utah requests proof of residency",
                 purpose = "Confirm in-state tuition eligibility for the upcoming academic term.",
                 requestedProof = "Utah residency verification",
-                sharedData = listOf("Utah residency verified", "Verification issued by State of Utah", "Valid through June 18, 2027"),
-                hiddenData = listOf("Full address", "Birthdate", "State ID number", "Document image"),
-                receivedAt = "2 min ago"
+                sharedData = listOf("Utah residency verified"),
+                hiddenData = listOf("Full address", "Birthdate", "ID number"),
+                receivedAt = "2 min ago",
+                expires = "Expires in 7 days"
+            ),
+            VerificationRequest(
+                id = "health-identity",
+                institutionName = "Department of Health",
+                title = "Department of Health requests identity confirmation",
+                purpose = "Match your state identity for a health services application.",
+                requestedProof = "Identity confirmation",
+                sharedData = listOf("Identity match confirmed"),
+                hiddenData = listOf("Full address", "Birthdate", "ID number"),
+                receivedAt = "12 min ago",
+                expires = "Expires in 14 days"
             ),
             VerificationRequest(
                 id = "bank-age",
-                institutionName = "Beehive Community Bank",
-                title = "Age verification requested",
-                purpose = "Open an age-restricted financial product.",
-                requestedProof = "Over 18 status",
-                sharedData = listOf("Over 18 verified", "Verification issued by State of Utah"),
-                hiddenData = listOf("Birthdate", "State ID number", "Home address"),
-                receivedAt = "18 min ago"
+                institutionName = "Bank",
+                title = "Bank requests age verification",
+                purpose = "Confirm eligibility for an age-restricted financial product.",
+                requestedProof = "Age verification",
+                sharedData = listOf("Over 18 verified"),
+                hiddenData = listOf("Birthdate", "Full address", "ID number"),
+                receivedAt = "18 min ago",
+                expires = "Expires in 10 days"
             )
         ),
         institutions = listOf(
@@ -76,31 +89,31 @@ class DemoIdentityRepository {
                 id = "health",
                 name = "Department of Health",
                 category = "State agency",
-                accessScope = "Immunization eligibility confirmation",
+                accessScope = "Identity confirmation",
                 allowedData = listOf("Identity match confirmed", "Utah residency verified"),
-                hiddenData = listOf("Full ID number", "Document image", "Financial data"),
+                hiddenData = listOf("Full address", "Birthdate", "ID number", "Unrelated credentials"),
                 lastUsed = "Yesterday",
                 expiration = "Sep 30, 2026",
                 status = PermissionStatus.Active
             ),
             ConnectedInstitution(
                 id = "licensing",
-                name = "Professional Licensing Board",
+                name = "Licensing Board",
                 category = "State board",
                 accessScope = "Professional license standing",
                 allowedData = listOf("License active", "Expiration date", "Disciplinary status: none"),
-                hiddenData = listOf("Birthdate", "Address", "State ID number"),
+                hiddenData = listOf("Full address", "Birthdate", "ID number", "Unrelated credentials"),
                 lastUsed = "May 28, 2026",
                 expiration = "Dec 31, 2026",
                 status = PermissionStatus.Active
             ),
             ConnectedInstitution(
                 id = "bank",
-                name = "Beehive Community Bank",
+                name = "Bank",
                 category = "Financial institution",
-                accessScope = "Age and identity confirmation",
-                allowedData = listOf("Identity verified", "Over 18 verified"),
-                hiddenData = listOf("Full address", "Document image", "License number"),
+                accessScope = "Age verification",
+                allowedData = listOf("Over 18 verified"),
+                hiddenData = listOf("Full address", "Birthdate", "ID number", "Unrelated credentials"),
                 lastUsed = "Apr 14, 2026",
                 expiration = "Apr 14, 2027",
                 status = PermissionStatus.Active
@@ -108,11 +121,14 @@ class DemoIdentityRepository {
         ),
         activity = listOf(
             ActivityEvent(
-                id = "seed-identity",
-                kind = ActivityKind.IdentityVerified,
-                title = "State ID ready for verification",
-                description = "Your wallet is prepared to verify a State of Utah identity.",
-                timestamp = "Before launch"
+                id = "seed-request",
+                kind = ActivityKind.RequestReceived,
+                title = "Residency request received",
+                description = "University of Utah requested proof of Utah residency.",
+                timestamp = "2 min ago",
+                institutionName = "University of Utah",
+                result = "Pending review",
+                institutionId = "university-of-utah"
             )
         )
     )

@@ -3,20 +3,33 @@
 ## Primary Demo Path Implemented
 
 1. Launch the Android app.
-2. Complete onboarding through Welcome, Create Identity Wallet, Verify State Identity, and State Identity Verified screens.
-3. Land on the Home tab.
-4. Use the recommended next-step card, the `Review requests` common action, or the Requests tab to open the University of Utah residency verification request.
-5. Review the request screen showing who is asking, the purpose, requested proof, what they will receive, what stays private, expiration, revocation language, and Activity visibility.
-6. Tap `Allow secure sharing`.
-7. See the `Sharing allowed` completion screen.
-8. Open `Manage access` or the Access tab.
-9. Open the University of Utah access details screen.
-10. Tap `Revoke access`.
-11. Open Activity to show the timeline of identity verification, request approval, residency sharing, and revocation.
+2. On `OnboardingWelcome`, introduce `Utah Identity Wallet` and the message `State-backed identity, controlled by you.`
+3. Tap `Create Identity Wallet`.
+4. On `OnboardingVerify`, show `Verify your State Identity` with State ID check, Residency check, and Identity match check.
+5. Tap `Verify Identity`.
+6. On `OnboardingComplete`, show `State Identity Verified`, the checkmark, and `Your identity wallet is ready.`
+7. Tap `Go to Wallet`.
+8. On the `Wallet` tab, show the verified State Identity card, credential cards for Utah Residency, Age Verification, and Professional License, and the recent University of Utah request preview.
+9. Open the University of Utah request from the Wallet preview or the `Requests` tab.
+10. On `Request Detail`, review requester name, purpose, requested proof, expiration, what University of Utah will receive, and what stays private.
+11. Tap `Review Share`.
+12. On `Share Review`, confirm `Share Utah Residency Verification`, shared `Utah residency verified`, and hidden full address, birthdate, and ID number.
+13. Tap `Approve Share`.
+14. On `Verification Success`, show `Verification Complete`, University of Utah received residency verification, no full address was shared, and permission was added to Connected Institutions.
+15. Tap `View Institution Access` or open the `Institutions` tab.
+16. On `Permission Detail`, show University of Utah can access Utah residency verification and student eligibility status, cannot access full address/birthdate/ID number/unrelated credentials, and has active access expiring in 30 days.
+17. Tap `Revoke Access`.
+18. On `Revoke Confirmation`, confirm that University of Utah will no longer verify residency, previous verification remains in activity history, and a new request can be approved later.
+19. Tap `Confirm Revoke`.
+20. On `Revoke Success`, show `Access Revoked`, University of Utah access removed, and Activity log updated.
+21. Tap `View Activity`.
+22. On `Activity`, show the audit trail entries for State Identity Verified, Residency request received, Residency shared with University of Utah, University access created, and University access revoked.
 
 ## Product Framing Preserved
 
-- The UI language emphasizes verified credentials, identity wallet, verification requests, permission scopes, expiration dates, connected institutions, revocation, delegation, and activity history.
-- The current UI also emphasizes familiar consumer patterns: Home dashboard, recommended next step, at-a-glance counts, common actions, secure sharing request, who is asking, they will receive, kept private, manage access, and activity timeline.
+- One screen has one primary job.
+- Main tabs are summary destinations only: Wallet, Requests, Institutions, and Activity.
+- Workflow-specific content lives in detail, confirmation, success, or optional flow screens.
+- Wallet no longer mixes full permissions, full institutions, full activity, and delegation controls.
 - The prototype avoids crypto/blockchain/trust-graph terminology and visuals in app source.
-- The design direction in code uses calm institutional colors, card-based wallet surfaces, secure-sharing consent layout, and mobile-native bottom navigation.
+- The design remains calm, institutional, card-based, and mobile-native.
