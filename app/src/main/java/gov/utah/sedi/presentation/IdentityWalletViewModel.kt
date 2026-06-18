@@ -5,10 +5,12 @@ import gov.utah.sedi.data.DemoIdentityRepository
 import gov.utah.sedi.domain.ActivityEvent
 import gov.utah.sedi.domain.ActivityKind
 import gov.utah.sedi.domain.ConnectedInstitution
+import gov.utah.sedi.domain.CredentialShareRecord
 import gov.utah.sedi.domain.DelegationDraft
 import gov.utah.sedi.domain.IdentityWalletState
 import gov.utah.sedi.domain.PermissionStatus
 import gov.utah.sedi.domain.RequestStatus
+import gov.utah.sedi.domain.ShareResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +20,7 @@ class IdentityWalletViewModel(
     repository: DemoIdentityRepository = DemoIdentityRepository()
 ) : ViewModel() {
     private var eventCounter = 0
+    private var shareCounter = 0
     private val _state = MutableStateFlow(repository.initialState())
     val state: StateFlow<IdentityWalletState> = _state.asStateFlow()
 
@@ -87,6 +90,22 @@ class IdentityWalletViewModel(
                     if (it.id == requestId) it.copy(status = RequestStatus.Approved) else it
                 },
                 institutions = institutions,
+                credentialShareHistory = listOf(
+                    newShareRecord(
+                        credentialId = "residency",
+                        recipient = uvuPermission.name,
+                        purpose = request.purpose,
+                        result = "Verified"
+                    )
+                ) + current.credentialShareHistory,
+                lastShareResult = ShareResult(
+                    credentialId = "residency",
+                    credentialTitle = "Utah Residency",
+                    recipient = uvuPermission.name,
+                    sharedItems = request.sharedData,
+                    hiddenItems = request.hiddenData,
+                    institutionId = uvuPermission.id
+                ),
                 activity = listOf(
                     newActivity(
                         kind = ActivityKind.PermissionCreated,
@@ -109,6 +128,112 @@ class IdentityWalletViewModel(
                 ) + current.activity
             )
         }
+    }
+
+    fun approveResidencyShare(recipient: String = "Requested institution") {
+        val sharedItems = listOf("Utah residency verified", "Issuer: State of Utah", "Status: Active")
+        val hiddenItems = listOf("Full address", "Birthdate", "State ID number", "Unrelated credentials")
+        _state.update { current ->
+            current.copy(
+                credentialShareHistory = listOf(
+                    newShareRecord(
+                        credentialId = "residency",
+                        recipient = recipient,
+                        purpose = "Residency verification",
+                        result = "Verified"
+                    )
+                ) + current.credentialShareHistory,
+                lastShareResult = ShareResult(
+                    credentialId = "residency",
+                    credentialTitle = "Utah Residency",
+                    recipient = recipient,
+                    sharedItems = sharedItems,
+                    hiddenItems = hiddenItems
+                ),
+                activity = listOf(
+                    newActivity(
+                        kind = ActivityKind.CredentialShared,
+                        title = "Residency verification shared",
+                        description = "$recipient received verified Utah residency status. No full address was shared.",
+                        timestamp = "Just now",
+                        institutionName = recipient,
+                        result = "Shared"
+                    )
+                ) + current.activity
+            )
+        }
+    }
+
+    fun approveAgeShare(ageProof: String = "21+ verified") {
+        val sharedItems = listOf(ageProof)
+        val hiddenItems = listOf("Exact birthdate", "ID number", "Full legal record")
+        _state.update { current ->
+            current.copy(
+                credentialShareHistory = listOf(
+                    newShareRecord(
+                        credentialId = "age",
+                        recipient = "Requested institution",
+                        purpose = "Age verification",
+                        result = "Verified"
+                    )
+                ) + current.credentialShareHistory,
+                lastShareResult = ShareResult(
+                    credentialId = "age",
+                    credentialTitle = "Age Verification",
+                    recipient = "Requested institution",
+                    sharedItems = sharedItems,
+                    hiddenItems = hiddenItems
+                ),
+                activity = listOf(
+                    newActivity(
+                        kind = ActivityKind.CredentialShared,
+                        title = "Age proof shared",
+                        description = "Shared $ageProof without exact birthdate or ID number.",
+                        timestamp = "Just now",
+                        institutionName = "Requested institution",
+                        result = "Shared"
+                    )
+                ) + current.activity
+            )
+        }
+    }
+
+    fun approveLicenseShare(recipient: String = "Requested institution") {
+        val sharedItems = listOf("License active", "Issuer: Utah Division of Professional Licensing", "Expiration: December 31, 2026")
+        val hiddenItems = listOf("Unrelated credentials", "Personal identity details not needed")
+        _state.update { current ->
+            current.copy(
+                credentialShareHistory = listOf(
+                    newShareRecord(
+                        credentialId = "license",
+                        recipient = recipient,
+                        purpose = "License verification",
+                        result = "Verified"
+                    )
+                ) + current.credentialShareHistory,
+                lastShareResult = ShareResult(
+                    credentialId = "license",
+                    credentialTitle = "Professional License",
+                    recipient = recipient,
+                    sharedItems = sharedItems,
+                    hiddenItems = hiddenItems
+                ),
+                activity = listOf(
+                    newActivity(
+                        kind = ActivityKind.CredentialShared,
+                        title = "License verification shared",
+                        description = "$recipient received active license verification without unrelated identity details.",
+                        timestamp = "Just now",
+                        institutionName = recipient,
+                        result = "Shared"
+                    )
+                ) + current.activity
+            )
+        }
+    }
+
+    fun clearLastShareResult() {
+        _state.update { current -> current.copy(lastShareResult = null) }
     }
 
     fun updateDelegationDraft(recipient: String? = null, allowedAction: String? = null, duration: String? = null) {
@@ -178,6 +303,23 @@ class IdentityWalletViewModel(
                 ) + current.activity
             )
         }
+    }
+
+    private fun newShareRecord(
+        credentialId: String,
+        recipient: String,
+        purpose: String,
+        result: String
+    ): CredentialShareRecord {
+        shareCounter += 1
+        return CredentialShareRecord(
+            id = "share-$shareCounter",
+            credentialId = credentialId,
+            recipient = recipient,
+            timestamp = "Just now",
+            purpose = purpose,
+            result = result
+        )
     }
 
     private fun newActivity(

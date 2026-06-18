@@ -51,6 +51,10 @@ The app is structured as a mobile product journey rather than a large scrolling 
 - `revokeAccess("uvu")` marks the UVU permission `Revoked`, changes `lastUsed` to `Revoked today`, and prepends `UVU access revoked` to Activity History.
 - `ActivityScreen` reflects the current `state.activity` list, including seed entries and the live approval/revocation events.
 
+## Developer Troubleshooting
+
+- `.wiki/android-emulator-troubleshooting.md` — build, install, emulator crashes, stale data, and `Error type 3` (activity not found).
+
 ## Verified Build
 
 The debug build was validated with:

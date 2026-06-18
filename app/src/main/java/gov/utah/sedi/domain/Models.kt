@@ -82,6 +82,24 @@ data class DelegationDraft(
     val duration: String = "72 hours"
 )
 
+data class CredentialShareRecord(
+    val id: String,
+    val credentialId: String,
+    val recipient: String,
+    val timestamp: String,
+    val purpose: String,
+    val result: String
+)
+
+data class ShareResult(
+    val credentialId: String,
+    val credentialTitle: String,
+    val recipient: String,
+    val sharedItems: List<String>,
+    val hiddenItems: List<String>,
+    val institutionId: String? = null
+)
+
 data class IdentityWalletState(
     val identityVerified: Boolean = false,
     val onboardingComplete: Boolean = false,
@@ -89,5 +107,7 @@ data class IdentityWalletState(
     val requests: List<VerificationRequest> = emptyList(),
     val institutions: List<ConnectedInstitution> = emptyList(),
     val activity: List<ActivityEvent> = emptyList(),
+    val credentialShareHistory: List<CredentialShareRecord> = emptyList(),
+    val lastShareResult: ShareResult? = null,
     val delegationDraft: DelegationDraft = DelegationDraft()
 )

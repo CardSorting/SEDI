@@ -61,9 +61,11 @@ import gov.utah.sedi.domain.ActivityKind
 import gov.utah.sedi.domain.ConnectedInstitution
 import gov.utah.sedi.domain.Credential
 import gov.utah.sedi.domain.CredentialType
+import gov.utah.sedi.domain.CredentialShareRecord
 import gov.utah.sedi.domain.IdentityWalletState
 import gov.utah.sedi.domain.PermissionStatus
 import gov.utah.sedi.domain.RequestStatus
+import gov.utah.sedi.domain.ShareResult
 import gov.utah.sedi.domain.VerificationRequest
 import gov.utah.sedi.presentation.IdentityWalletViewModel
 import kotlinx.coroutines.delay
@@ -84,10 +86,19 @@ private object Route {
     const val StateVerificationChecks = "stateVerificationChecks"
     const val OnboardingComplete = "onboardingComplete"
     const val Wallet = "wallet"
+    const val StateIdentity = "stateIdentity"
+    const val ShareProof = "shareProof"
+    const val ResidencyProof = "residencyProof"
+    const val AgeProof = "ageProof"
+    const val LicenseProof = "licenseProof"
     const val Requests = "requests"
     const val Institutions = "institutions"
     const val Activity = "activity"
-    const val CredentialDetail = "credential/{credentialId}"
+    const val CredentialShareHistory = "credentialShareHistory/{credentialId}"
+    const val ShareResidencyReview = "shareResidencyReview"
+    const val ShareAgeReview = "shareAgeReview"
+    const val ShareLicenseReview = "shareLicenseReview"
+    const val ShareSuccess = "shareSuccess"
     const val RequestDetail = "request/{requestId}"
     const val SharedDataPreview = "sharedDataPreview/{requestId}"
     const val ApprovalConsent = "approvalConsent/{requestId}"
@@ -213,8 +224,48 @@ private fun IdentityWalletApp(viewModel: IdentityWalletViewModel) {
             composable(Route.Wallet) {
                 WalletScreen(
                     state = state,
-                    onViewCredential = { navController.navigate("credential/$it") },
+                    onViewIdentity = { navController.navigate(Route.StateIdentity) },
+                    onShareProof = { navController.navigate(Route.ShareProof) },
+                    onManageAccess = { navController.navigate(Route.Institutions) },
+                    onViewActivity = { navController.navigate(Route.Activity) },
                     onOpenRequest = { navController.navigate("request/$it") }
+                )
+            }
+            composable(Route.StateIdentity) {
+                val credential = state.credentials.firstOrNull { it.type == CredentialType.StateIdentity }
+                if (credential == null) {
+                    MissingScreen("Identity unavailable", onBack = { navController.popBackStack() })
+                } else {
+                    StateIdentityDetailScreen(
+                        credential = credential,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+            }
+            composable(Route.ShareProof) {
+                ShareProofTypeScreen(
+                    onChooseResidency = { navController.navigate(Route.ResidencyProof) },
+                    onChooseAge = { navController.navigate(Route.AgeProof) },
+                    onChooseLicense = { navController.navigate(Route.LicenseProof) },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Route.ResidencyProof) {
+                ResidencyProofDetailScreen(
+                    onShareProof = { navController.navigate(Route.ShareResidencyReview) },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Route.AgeProof) {
+                AgeProofDetailScreen(
+                    onShareProof = { navController.navigate(Route.ShareAgeReview) },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Route.LicenseProof) {
+                LicenseProofDetailScreen(
+                    onShareProof = { navController.navigate(Route.ShareLicenseReview) },
+                    onBack = { navController.popBackStack() }
                 )
             }
             composable(Route.Requests) {
@@ -232,10 +283,67 @@ private fun IdentityWalletApp(viewModel: IdentityWalletViewModel) {
             composable(Route.Activity) {
                 ActivityScreen(events = state.activity)
             }
-            composable(Route.CredentialDetail) { entry ->
-                val credential = state.credentials.firstOrNull { it.id == entry.arguments?.getString("credentialId") }
-                if (credential == null) MissingScreen("Credential unavailable", onBack = { navController.popBackStack() })
-                else CredentialDetailScreen(credential = credential, onBack = { navController.popBackStack() })
+            composable(Route.CredentialShareHistory) { entry ->
+                val credentialId = entry.arguments?.getString("credentialId").orEmpty()
+                val credential = state.credentials.firstOrNull { it.id == credentialId }
+                val history = state.credentialShareHistory.filter { it.credentialId == credentialId }
+                if (credential == null) {
+                    MissingScreen("Share history unavailable", onBack = { navController.popBackStack() })
+                } else {
+                    CredentialShareHistoryScreen(
+                        credentialTitle = credential.title,
+                        history = history,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+            }
+            composable(Route.ShareResidencyReview) {
+                ShareResidencyReviewScreen(
+                    onApprove = {
+                        viewModel.approveResidencyShare()
+                        navController.navigate(Route.ShareSuccess)
+                    },
+                    onCancel = { navController.popBackStack() }
+                )
+            }
+            composable(Route.ShareAgeReview) {
+                ShareAgeReviewScreen(
+                    onApprove = {
+                        viewModel.approveAgeShare()
+                        navController.navigate(Route.ShareSuccess)
+                    },
+                    onCancel = { navController.popBackStack() }
+                )
+            }
+            composable(Route.ShareLicenseReview) {
+                ShareLicenseReviewScreen(
+                    onApprove = {
+                        viewModel.approveLicenseShare()
+                        navController.navigate(Route.ShareSuccess)
+                    },
+                    onCancel = { navController.popBackStack() }
+                )
+            }
+            composable(Route.ShareSuccess) {
+                val shareResult = state.lastShareResult
+                if (shareResult == null) {
+                    MissingScreen("Share result unavailable", onBack = { navController.popBackStack() })
+                } else {
+                    CredentialShareSuccessScreen(
+                        shareResult = shareResult,
+                        onViewActivity = { navController.navigate(Route.Activity) },
+                        onBackToWallet = {
+                            viewModel.clearLastShareResult()
+                            navController.navigate(Route.Wallet) {
+                                popUpTo(navController.graph.findStartDestination().id)
+                                launchSingleTop = true
+                            }
+                        },
+                        onViewInstitution = shareResult.institutionId?.let { institutionId ->
+                            { navController.navigate("permission/$institutionId") }
+                        }
+                    )
+                }
             }
             composable(Route.RequestDetail) { entry ->
                 val request = state.requests.firstOrNull { it.id == entry.arguments?.getString("requestId") }
@@ -460,30 +568,325 @@ private fun FullScreenStep(
 @Composable
 private fun WalletScreen(
     state: IdentityWalletState,
-    onViewCredential: (String) -> Unit,
+    onViewIdentity: () -> Unit,
+    onShareProof: () -> Unit,
+    onManageAccess: () -> Unit,
+    onViewActivity: () -> Unit,
     onOpenRequest: (String) -> Unit
 ) {
-    val credentialCards = state.credentials.filter { it.type != CredentialType.StateIdentity }
     val pendingRequest = state.requests.firstOrNull { it.status == RequestStatus.Pending }
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        ScreenHeader("Wallet", "Your identity home")
+        IdentityStatusCard(onViewIdentity = onViewIdentity)
+        if (pendingRequest != null) {
+            PrimaryActionCard(
+                title = pendingRequest.title,
+                subtitle = "Review what UVU will receive before sharing.",
+                onReviewRequest = { onOpenRequest(pendingRequest.id) }
+            )
+        }
+        SectionTitle("Quick actions")
+        WalletQuickAction(label = "Share a Proof", onClick = onShareProof)
+        WalletQuickAction(label = "Manage Access", onClick = onManageAccess)
+        WalletQuickAction(label = "View Activity", onClick = onViewActivity)
+        PrivacySummaryCard()
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun IdentityStatusCard(onViewIdentity: () -> Unit) {
+    CalmPanel {
+        Text("State Identity Verified", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        Text("Your Utah identity wallet is active.", color = Slate, style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(14.dp))
+        Button(onClick = onViewIdentity, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
+            Text("View Identity")
+        }
+    }
+}
+
+@Composable
+private fun PrimaryActionCard(title: String, subtitle: String, onReviewRequest: () -> Unit) {
+    CalmPanel {
+        Text(title, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(8.dp))
+        Text(subtitle, color = Slate, style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(14.dp))
+        Button(onClick = onReviewRequest, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
+            Text("Review Request")
+        }
+    }
+}
+
+@Composable
+private fun WalletQuickAction(label: String, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().height(50.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Text(label, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun PrivacySummaryCard() {
+    CalmPanel {
+        Text("You choose what to share", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(8.dp))
+        Text("Institutions receive only the proof you approve.", color = Slate, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun ShareProofTypeScreen(
+    onChooseResidency: () -> Unit,
+    onChooseAge: () -> Unit,
+    onChooseLicense: () -> Unit,
+    onBack: () -> Unit
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        item { ScreenHeader("Wallet", "Your identity status and credentials") }
-        item { VerifiedStateIdentityCard(identityVerified = state.identityVerified) }
-        item { SectionTitle("Credentials") }
-        items(credentialCards) { credential ->
-            CredentialCard(credential = credential, onViewCredential = { onViewCredential(credential.id) })
-        }
-        item { SectionTitle("Recent request") }
+        item { TopBackRow(title = "Share a Proof", onBack = onBack) }
         item {
-            if (pendingRequest != null) {
-                RequestPreviewCard(request = pendingRequest, onOpenRequest = { onOpenRequest(pendingRequest.id) })
-            } else {
-                EmptyCard("No pending verification requests")
-            }
+            Text(
+                "Choose what you need to verify.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Slate,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+        }
+        item {
+            ProofTypeOptionCard(
+                title = "Residency",
+                description = "Verify Utah residency without sharing your full address.",
+                onClick = onChooseResidency
+            )
+        }
+        item {
+            ProofTypeOptionCard(
+                title = "Age",
+                description = "Verify age eligibility without sharing your birthdate.",
+                onClick = onChooseAge
+            )
+        }
+        item {
+            ProofTypeOptionCard(
+                title = "License Status",
+                description = "Verify license status without sharing unrelated information.",
+                onClick = onChooseLicense
+            )
         }
         item { Spacer(Modifier.height(16.dp)) }
+    }
+}
+
+@Composable
+private fun ProofTypeOptionCard(title: String, description: String, onClick: () -> Unit) {
+    CalmPanel {
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(8.dp))
+        Text(description, color = Slate, style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(14.dp))
+        Button(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
+            Text("Choose $title")
+        }
+    }
+}
+
+@Composable
+private fun StateIdentityDetailScreen(credential: Credential, onBack: () -> Unit) {
+    DetailScreen(title = "State Identity", onBack = onBack) {
+        CalmPanel {
+            Text("State Identity Verified", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(14.dp))
+            InfoRow("Issuer", "State of Utah")
+            InfoRow("Status", "Active")
+            InfoRow("Verified on", credential.lastVerified)
+            InfoRow("Wallet", "Identity wallet active")
+        }
+    }
+}
+
+@Composable
+private fun ResidencyProofDetailScreen(onShareProof: () -> Unit, onBack: () -> Unit) {
+    DetailScreen(title = "Residency Proof", onBack = onBack) {
+        CalmPanel {
+            Text("Utah Residency: Verified", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(14.dp))
+            InfoRow("Can prove", "Utah residency")
+            InfoRow("Hidden by default", "Full address, birthdate, ID number")
+        }
+        Button(onClick = onShareProof, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Share Residency Proof", fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+private fun AgeProofDetailScreen(onShareProof: () -> Unit, onBack: () -> Unit) {
+    DetailScreen(title = "Age Proof", onBack = onBack) {
+        CalmPanel {
+            Text("Age Eligibility: Verified", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(14.dp))
+            InfoRow("Can prove", "18+ or 21+")
+            InfoRow("Hidden by default", "Birthdate, ID number")
+        }
+        Button(onClick = onShareProof, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Share Age Proof", fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+private fun LicenseProofDetailScreen(onShareProof: () -> Unit, onBack: () -> Unit) {
+    DetailScreen(title = "License Proof", onBack = onBack) {
+        CalmPanel {
+            Text("License Status: Verified", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(14.dp))
+            InfoRow("Can prove", "Active license status")
+            InfoRow("Hidden by default", "Unrelated credentials")
+        }
+        Button(onClick = onShareProof, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Share License Proof", fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+private fun ShareResidencyReviewScreen(onApprove: () -> Unit, onCancel: () -> Unit) {
+    DetailScreen(title = "Share Residency Review", onBack = onCancel) {
+        CalmPanel {
+            Text("Review residency proof", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Text("Confirm what will be shared before sending verification.", color = Slate)
+        }
+        DataListPanel("Shared", Success, listOf("Utah residency verified", "Issuer: State of Utah", "Status: Active"))
+        DataListPanel("Hidden", Slate, listOf("Full address", "Birthdate", "State ID number", "Unrelated credentials"))
+        Button(onClick = onApprove, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Approve Share", fontWeight = FontWeight.SemiBold)
+        }
+        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Cancel")
+        }
+    }
+}
+
+@Composable
+private fun ShareAgeReviewScreen(onApprove: () -> Unit, onCancel: () -> Unit) {
+    DetailScreen(title = "Share Age Review", onBack = onCancel) {
+        CalmPanel {
+            Text("Review age proof", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Text("Only the age threshold is shared, not your full record.", color = Slate)
+        }
+        DataListPanel("Shared", Success, listOf("21+ verified"))
+        DataListPanel("Hidden", Slate, listOf("Exact birthdate", "ID number", "Full legal record"))
+        Button(onClick = onApprove, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Approve Share", fontWeight = FontWeight.SemiBold)
+        }
+        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Cancel")
+        }
+    }
+}
+
+@Composable
+private fun ShareLicenseReviewScreen(onApprove: () -> Unit, onCancel: () -> Unit) {
+    DetailScreen(title = "Share License Review", onBack = onCancel) {
+        CalmPanel {
+            Text("Review license verification", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Text("Only license status and issuer details are shared.", color = Slate)
+        }
+        DataListPanel("Shared", Success, listOf("License active", "Issuer: Utah Division of Professional Licensing", "License class if applicable", "Expiration"))
+        DataListPanel("Hidden", Slate, listOf("Unrelated credentials", "Personal identity details not needed"))
+        Button(onClick = onApprove, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Approve Share", fontWeight = FontWeight.SemiBold)
+        }
+        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Cancel")
+        }
+    }
+}
+
+@Composable
+private fun CredentialShareSuccessScreen(
+    shareResult: ShareResult,
+    onViewActivity: () -> Unit,
+    onBackToWallet: () -> Unit,
+    onViewInstitution: (() -> Unit)?
+) {
+    Column(
+        modifier = Modifier.fillMaxSize().background(Mist).padding(24.dp),
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Spacer(Modifier.height(20.dp))
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            StatusCircle("✓", Success.copy(alpha = 0.12f), textColor = Success)
+            Spacer(Modifier.height(24.dp))
+            Text("Verification Shared", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Ink)
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "${shareResult.credentialTitle} was shared with ${shareResult.recipient}.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Slate
+            )
+            Spacer(Modifier.height(20.dp))
+            DataListPanel("Shared", Success, shareResult.sharedItems)
+            Spacer(Modifier.height(12.dp))
+            DataListPanel("Stayed private", Slate, shareResult.hiddenItems)
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(onClick = onViewActivity, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
+                Text("View Activity")
+            }
+            if (onViewInstitution != null) {
+                OutlinedButton(onClick = onViewInstitution, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
+                    Text("View Connected Institution")
+                }
+            }
+            OutlinedButton(onClick = onBackToWallet, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
+                Text("Back to Wallet")
+            }
+        }
+    }
+}
+
+@Composable
+private fun CredentialShareHistoryScreen(
+    credentialTitle: String,
+    history: List<CredentialShareRecord>,
+    onBack: () -> Unit
+) {
+    DetailScreen(title = "Share History", onBack = onBack) {
+        CalmPanel {
+            Text(credentialTitle, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Text("Past shares for this credential.", color = Slate)
+        }
+        if (history.isEmpty()) {
+            EmptyCard("No share history yet")
+        } else {
+            history.forEach { record ->
+                CalmPanel {
+                    InfoRow("Shared with", record.recipient)
+                    InfoRow("Date", record.timestamp)
+                    InfoRow("Purpose", record.purpose)
+                    InfoRow("Result", record.result)
+                }
+            }
+        }
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Back")
+        }
     }
 }
 
@@ -720,21 +1123,6 @@ private fun ActivityScreen(events: List<ActivityEvent>) {
 }
 
 @Composable
-private fun CredentialDetailScreen(credential: Credential, onBack: () -> Unit) {
-    DetailScreen(title = "Credential Detail", onBack = onBack) {
-        CalmPanel {
-            Text(credential.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(8.dp))
-            Text(credential.subtitle, color = Slate)
-            Spacer(Modifier.height(14.dp))
-            InfoRow("Status", credential.verifiedLabel)
-            InfoRow("Last verified", credential.lastVerified)
-            InfoRow("Expires", credential.expires)
-        }
-    }
-}
-
-@Composable
 private fun DelegationScreen(
     state: IdentityWalletState,
     onRecipientChanged: (String) -> Unit,
@@ -795,59 +1183,6 @@ private fun ResultScreen(
             Button(onClick = onPrimary, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) { Text(primaryLabel) }
             OutlinedButton(onClick = onSecondary, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) { Text(secondaryLabel) }
         }
-    }
-}
-
-@Composable
-private fun VerifiedStateIdentityCard(identityVerified: Boolean) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = StateBlue),
-        shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(4.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(22.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                StatusCircle("UT", Color(0xFFEAF3F8), textColor = StateBlue)
-                Spacer(Modifier.width(14.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("State of Utah", color = Color.White.copy(alpha = 0.78f), style = MaterialTheme.typography.labelLarge)
-                    Text("Verified State Identity", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                }
-            }
-            Spacer(Modifier.height(18.dp))
-            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                HeroMeta("Status", if (identityVerified) "Verified" else "Ready")
-                HeroMeta("Expires", "May 2030")
-                HeroMeta("Control", "Yours")
-            }
-        }
-    }
-}
-
-@Composable
-private fun CredentialCard(credential: Credential, onViewCredential: () -> Unit) {
-    CalmPanel {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            StatusCircle("✓", Success.copy(alpha = 0.12f), textColor = Success)
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(credential.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(credential.subtitle, style = MaterialTheme.typography.bodyMedium, color = Slate)
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        Button(onClick = onViewCredential, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) { Text("View Credential") }
-    }
-}
-
-@Composable
-private fun RequestPreviewCard(request: VerificationRequest, onOpenRequest: () -> Unit) {
-    CalmPanel {
-        Text(request.institutionName, fontWeight = FontWeight.SemiBold)
-        Text("Requests proof of Utah residency", color = Slate)
-        Spacer(Modifier.height(12.dp))
-        Button(onClick = onOpenRequest, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) { Text("Review Request") }
     }
 }
 
